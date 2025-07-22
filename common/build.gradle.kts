@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     `maven-publish`
 }
-apply(from = "genApplicationVersion.gradle.kts")
+//apply(from = "genApplicationVersion.gradle.kts")
 android {
     namespace = "com.yaduo.common"
     compileSdk = rootProject.extra["compileSdk"] as Int
@@ -74,7 +74,9 @@ android {
 
 task("sourcesJar", Jar::class) {
     archiveClassifier.set("sources")
+    // 同时包含 Java 和 Kotlin 源码
     from(android.sourceSets["main"].java.srcDirs)
+    from(android.sourceSets["main"].kotlin.srcDirs())
 }
 
 //project.afterEvaluate {
@@ -111,11 +113,17 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
                 artifact(tasks["sourcesJar"]) // 添加源码JAR
+
                 // 设置Maven坐标
                 groupId = "com.github.Yyaduo"
                 artifactId = "YaduoCommon"
-                version = "1.0.0"
+                version = project.version.toString()
             }
+        }
+
+        // 为元数据生成任务添加对sourcesJar的依赖
+        tasks.named("generateMetadataFileForReleasePublication") {
+            dependsOn("sourcesJar")
         }
     }
 }
