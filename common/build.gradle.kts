@@ -74,7 +74,7 @@ android {
 
 task("sourcesJar", Jar::class) {
     archiveClassifier.set("sources")
-    from(android.sourceSets["main"].java.srcDirs)
+//    from(android.sourceSets["main"].java.srcDirs)
     from(android.sourceSets["main"].kotlin.srcDirs())
 }
 
