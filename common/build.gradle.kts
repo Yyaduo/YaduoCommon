@@ -29,12 +29,12 @@ android {
         buildConfig = true
     }
 
-    sourceSets {
-        getByName("main") {
-            java.srcDirs("src/main/java")
-            kotlin.srcDirs("src/main/kotlin")
-        }
-    }
+//    sourceSets {
+//        getByName("main") {
+//            java.srcDirs("src/main/java")
+//            kotlin.srcDirs("src/main/kotlin")
+//        }
+//    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -72,10 +72,10 @@ android {
 //}
 
 
-task("sourcesJar", Jar::class) {
+tasks.register<Jar>("sourcesJar") {
     archiveClassifier.set("sources")
-//    from(android.sourceSets["main"].java.srcDirs)
     from(android.sourceSets["main"].kotlin.srcDirs())
+//    from(android.sourceSets["main"].java.srcDirs)
 }
 
 //project.afterEvaluate {

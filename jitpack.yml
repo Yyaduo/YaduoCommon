@@ -4,4 +4,4 @@ before_install:
   - sdk install java 17.0.14-amzn  # 安装指定 Java 版本
   - sdk use java 17.0.14-amzn
 install:
-  - ./gradlew clean :common:assembleRelease :common:publishToMavenLocal :common:sourcesJar  # 明确构建当前库的命令
+  - ./gradlew clean :common:assembleRelease :common:publishToMavenLocal  # 明确构建当前库的命令
