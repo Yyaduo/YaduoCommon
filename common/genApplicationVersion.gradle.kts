@@ -18,9 +18,13 @@ rootExtra.apply {
 
     // 获取当前 Git 分支名称
     set("getBranch") { dir: String ->
-        val rawBranch =
-            (rootExtra["executeCmd"] as (String) -> String).invoke("git -C $dir name-rev --name-only HEAD")
-        rawBranch.replace("^(.*?\\~|remotes\\/origin\\/)".toRegex(), "")
+        try {
+            // 更可靠的获取当前分支命令
+            (rootExtra["executeCmd"] as (String) -> String)
+                .invoke("git -C $dir rev-parse --abbrev-ref HEAD")
+        } catch (e: Exception) {
+            "unknown-branch" // 出错时使用默认值
+        }
     }
 
     // 获取当前 Git 用户名称
