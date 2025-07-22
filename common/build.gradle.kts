@@ -11,8 +11,10 @@ afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("release") {
+                artifact(tasks["sourcesJar"]) // 添加源码JAR
+
                 groupId = (group.toString())
-                artifactId = "wanandroidsdk-kts"
+                artifactId = "YaduoCommon"
                 version = version
             }
         }
