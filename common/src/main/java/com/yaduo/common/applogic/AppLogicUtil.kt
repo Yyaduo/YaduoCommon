@@ -1,7 +1,6 @@
 package com.yaduo.common.applogic
 
 import android.app.Application
-import com.yaduo.common.ApplicationVersion
 import okhttp3.Interceptor
 
 /**
@@ -66,6 +65,6 @@ object AppLogicUtil {
      *  - 打包时间
      *  - 使用分支
      */
-    fun getApplicationVersionInfo() =
-        "${ApplicationVersion.APP_NAME}_${ApplicationVersion.VERSION_NAME}_${ApplicationVersion.PACKTIME}_${ApplicationVersion.BRANCH}"
+//    fun getApplicationVersionInfo() =
+//        "${sApp.applicationInfo.name}_${BuildConfig.VERSION_NAME}_${BuildConfig.BUILD_TYPE}_${ApplicationVersion.BRANCH}"
 }

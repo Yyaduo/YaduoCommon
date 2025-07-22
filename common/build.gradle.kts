@@ -25,6 +25,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     sourceSets {
         getByName("main") {
             java.srcDirs(layout.buildDirectory.dir("generated/source/version"))
@@ -44,7 +48,8 @@ android {
 tasks.register("genApplicationVersion") {
     doLast {
         // 生成文件的预期路径
-        val expectedPath = "${project.buildDir}/generated/source/version/com/yaduo/common/ApplicationVersion.kt"
+        val expectedPath =
+            "${project.buildDir}/generated/source/version/com/yaduo/common/ApplicationVersion.kt"
         val file = File(expectedPath)
         if (file.exists()) {
             println("✅ ApplicationVersion.kt 生成成功: $expectedPath")
