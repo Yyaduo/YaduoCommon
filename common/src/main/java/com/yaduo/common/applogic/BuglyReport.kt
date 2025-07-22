@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Build
 import com.tencent.bugly.crashreport.CrashReport
 import com.tencent.bugly.crashreport.CrashReport.UserStrategy
-import com.yaduo.common.ApplicationVersion
 import com.yaduo.common.device.DeviceInfo
 
 /**
@@ -62,14 +61,14 @@ object BuglyReport : ICommonModule {
         val userStrategy = UserStrategy(AppLogicUtil.getApp()).apply {
             deviceID = DeviceInfo.getUuid()
             deviceModel = Build.MODEL
-            appVersion = ApplicationVersion.APP_NAME
-            appPackageName = ApplicationVersion.PACKAGE_NAME
+            appVersion = AppLogicUtil.getVersionCode().toString()
+            appPackageName = AppLogicUtil.getApp().packageName
         }
 
         // 初始化
         CrashReport.initCrashReport(
             AppLogicUtil.getApp(),
-            "289dd65d41",
+            AppLogicUtil.appIdForBuglyReport,
             false,
             userStrategy
         )

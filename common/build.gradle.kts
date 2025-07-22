@@ -45,31 +45,31 @@ android {
     }
 }
 
-tasks.register("genApplicationVersion") {
-    doLast {
-        // 生成文件的预期路径
-        val expectedPath =
-            "${project.buildDir}/generated/source/version/com/yaduo/common/ApplicationVersion.kt"
-        val file = File(expectedPath)
-        if (file.exists()) {
-            println("✅ ApplicationVersion.kt 生成成功: $expectedPath")
-        } else {
-            println("❌ 错误: ApplicationVersion.kt 未生成，预期路径: $expectedPath")
-        }
-    }
-
-    val oldVersionFile =
-        File("${project.projectDir.absolutePath}/src/com/yaduo/common/ApplicationVersion.kt")
-    if (oldVersionFile.exists()) oldVersionFile.delete()
-
-    val namespace = android.namespace ?: "com.yaduo.common"
-    // 调用 genVersionFile 函数
-    @Suppress("UNCHECKED_CAST")
-    (rootProject.extra["genVersionFile"] as (Project, String) -> Unit).invoke(
-        project,
-        namespace
-    )
-}
+//tasks.register("genApplicationVersion") {
+//    doLast {
+//        // 生成文件的预期路径
+//        val expectedPath =
+//            "${project.buildDir}/generated/source/version/com/yaduo/common/ApplicationVersion.kt"
+//        val file = File(expectedPath)
+//        if (file.exists()) {
+//            println("✅ ApplicationVersion.kt 生成成功: $expectedPath")
+//        } else {
+//            println("❌ 错误: ApplicationVersion.kt 未生成，预期路径: $expectedPath")
+//        }
+//    }
+//
+//    val oldVersionFile =
+//        File("${project.projectDir.absolutePath}/src/com/yaduo/common/ApplicationVersion.kt")
+//    if (oldVersionFile.exists()) oldVersionFile.delete()
+//
+//    val namespace = android.namespace ?: "com.yaduo.common"
+//    // 调用 genVersionFile 函数
+//    @Suppress("UNCHECKED_CAST")
+//    (rootProject.extra["genVersionFile"] as (Project, String) -> Unit).invoke(
+//        project,
+//        namespace
+//    )
+//}
 
 
 task("sourcesJar", Jar::class) {
@@ -77,17 +77,17 @@ task("sourcesJar", Jar::class) {
     from(android.sourceSets["main"].java.srcDirs)
 }
 
-project.afterEvaluate {
-    // 确保preBuild依赖genApplicationVersion
-    tasks.named("preBuild") {
-        dependsOn("genApplicationVersion")
-    }
-
-    // 在评估完成后再获取compileReleaseKotlin任务，确保任务已存在
-    tasks.findByName("compileReleaseKotlin")?.dependsOn("genApplicationVersion")
-    // 同时添加debug版本的依赖，确保全版本兼容
-    tasks.findByName("compileDebugKotlin")?.dependsOn("genApplicationVersion")
-}
+//project.afterEvaluate {
+//    // 确保preBuild依赖genApplicationVersion
+//    tasks.named("preBuild") {
+//        dependsOn("genApplicationVersion")
+//    }
+//
+//    // 在评估完成后再获取compileReleaseKotlin任务，确保任务已存在
+//    tasks.findByName("compileReleaseKotlin")?.dependsOn("genApplicationVersion")
+//    // 同时添加debug版本的依赖，确保全版本兼容
+//    tasks.findByName("compileDebugKotlin")?.dependsOn("genApplicationVersion")
+//}
 
 
 dependencies {
