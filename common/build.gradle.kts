@@ -31,8 +31,8 @@ android {
 
     sourceSets {
         getByName("main") {
-            java.srcDirs(layout.buildDirectory.dir("generated/source/version"))
-            kotlin.srcDirs(layout.buildDirectory.dir("generated/source/version"))
+            java.srcDirs("src/main/java")
+            kotlin.srcDirs("src/main/kotlin")
         }
     }
 
@@ -74,9 +74,8 @@ android {
 
 task("sourcesJar", Jar::class) {
     archiveClassifier.set("sources")
-    // 同时包含 Java 和 Kotlin 源码
     from(android.sourceSets["main"].java.srcDirs)
-    from(android.sourceSets["main"].kotlin)
+    from(android.sourceSets["main"].kotlin.srcDirs())
 }
 
 //project.afterEvaluate {
