@@ -21,6 +21,7 @@ okhttp = "4.12.0"
 gson = "2.11.0"
 constraintLayout = "2.1.4"
 cardview = "1.0.0"
+publish = "0.28.0"
 
 [libraries]
 # ================== Core Android 核心Android库 ==================
@@ -72,3 +73,4 @@ android-application = { id = "com.android.application", version.ref = "agp" } # 
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" } # Kotlin Android支持插件
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" } # Kotlin Compose优化插件
 android-library = { id = "com.android.library", version.ref = "agp" } # Android库模块构建插件
+maven-Publish = { id = "com.vanniktech.maven.publish", version.ref = "publish" } # Maven发布插件

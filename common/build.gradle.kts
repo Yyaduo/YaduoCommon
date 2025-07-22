@@ -4,6 +4,21 @@ plugins {
     `maven-publish`
 }
 //apply(from = "genApplicationVersion.gradle.kts")
+group = "com.github.Yyaduo"
+version = "1.0.9"
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = (group.toString())
+                artifactId = "wanandroidsdk-kts"
+                version = version
+            }
+        }
+    }
+}
+
 android {
     namespace = "com.yaduo.common"
     compileSdk = rootProject.extra["compileSdk"] as Int
@@ -25,8 +40,13 @@ android {
         }
     }
 
-    buildFeatures {
-        buildConfig = true
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
     }
 
 //    sourceSets {
@@ -35,14 +55,6 @@ android {
 //            kotlin.srcDirs("src/main/kotlin")
 //        }
 //    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
 }
 
 //tasks.register("genApplicationVersion") {
@@ -106,23 +118,23 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                artifact(tasks["sourcesJar"]) // 添加源码JAR
-
-                // 设置Maven坐标
-                groupId = "com.github.Yyaduo"
-                artifactId = "YaduoCommon"
-                version = project.version.toString()
-            }
-        }
-
-        // 为元数据生成任务添加对sourcesJar的依赖
-        tasks.named("generateMetadataFileForReleasePublication") {
-            dependsOn("sourcesJar")
-        }
-    }
-}
+//afterEvaluate {
+//    publishing {
+//        publications {
+//            create<MavenPublication>("release") {
+//                from(components["release"])
+//                artifact(tasks["sourcesJar"]) // 添加源码JAR
+//
+//                // 设置Maven坐标
+//                groupId = group.toString()
+//                artifactId = "YaduoCommon"
+//                version = version
+//            }
+//        }
+//
+//        // 为元数据生成任务添加对sourcesJar的依赖
+//        tasks.named("generateMetadataFileForReleasePublication") {
+//            dependsOn("sourcesJar")
+//        }
+//    }
+//}
