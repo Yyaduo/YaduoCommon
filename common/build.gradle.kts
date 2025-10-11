@@ -6,7 +6,7 @@ plugins {
 //apply(from = "genApplicationVersion.gradle.kts")
 
 group = "com.github.Yyaduo"
-version = "1.0.11"
+version = "1.0.12"
 
 android {
     namespace = "com.yaduo.common"
@@ -38,6 +38,13 @@ android {
         jvmTarget = "17"
     }
 
+    publishing {
+        singleVariant("release") {
+            withSourcesJar() // 可选：发布源码
+            withJavadocJar() // 可选：发布文档
+        }
+    }
+
 //    sourceSets {
 //        getByName("main") {
 //            java.srcDirs("src/main/java")
@@ -45,6 +52,20 @@ android {
 //        }
 //    }
 }
+afterEvaluate{
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+
+                groupId = "com.github.Yyaduo"
+                artifactId = "common"
+                version = "1.0.12"
+            }
+        }
+    }
+}
+
 
 //tasks.register("genApplicationVersion") {
 //    doLast {
