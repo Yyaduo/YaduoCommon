@@ -6,6 +6,17 @@ plugins {
     alias(libs.plugins.maven.publish) apply false
 }
 
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath(libs.gradle)
+        classpath(libs.android.maven.gradle.plugin)
+    }
+}
+
 allprojects {
     extra.apply {
         set("appName", "YaDuoPlayer")

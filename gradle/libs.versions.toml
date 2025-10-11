@@ -1,8 +1,10 @@
 [versions]
 agp = "8.9.1"
 androidautosize = "v1.2.1"
+androidMavenGradlePlugin = "2.1"
 crashreport = "latest.release"
 eventbus = "3.3.1"
+gradle = "4.0.0"
 kotlin = "2.0.21"
 coreKtx = "1.13.0"
 junit = "4.13.2"
@@ -25,8 +27,10 @@ publish = "0.28.0"
 
 [libraries]
 # ================== Core Android 核心Android库 ==================
+android-maven-gradle-plugin = { module = "com.github.dcendents:android-maven-gradle-plugin", version.ref = "androidMavenGradlePlugin" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" } # Kotlin扩展的核心Android功能
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" } # 提供向后兼容支持
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" } # Material Design组件实现
 
 # ================== UI相关库 ==================

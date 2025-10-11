@@ -4,22 +4,9 @@ plugins {
     `maven-publish`
 }
 //apply(from = "genApplicationVersion.gradle.kts")
+
 group = "com.github.Yyaduo"
-version = "1.0.9"
-
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                artifact(tasks["sourcesJar"]) // 添加源码JAR
-
-                groupId = (group.toString())
-                artifactId = "YaduoCommon"
-                version = version
-            }
-        }
-    }
-}
+version = "1.0.11"
 
 android {
     namespace = "com.yaduo.common"
@@ -43,12 +30,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
 //    sourceSets {
@@ -86,11 +73,11 @@ android {
 //}
 
 
-tasks.register<Jar>("sourcesJar") {
-    archiveClassifier.set("sources")
-    from(android.sourceSets["main"].kotlin.srcDirs())
-//    from(android.sourceSets["main"].java.srcDirs)
-}
+//tasks.register<Jar>("sourcesJar") {
+//    archiveClassifier.set("sources")
+//    from(android.sourceSets["main"].kotlin.srcDirs())
+////    from(android.sourceSets["main"].java.srcDirs)
+//}
 
 //project.afterEvaluate {
 //    // 确保preBuild依赖genApplicationVersion
@@ -120,23 +107,61 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
+
+
+// 发布配置 - 必须放在afterEvaluate块中确保Android配置已完成
 //afterEvaluate {
 //    publishing {
 //        publications {
 //            create<MavenPublication>("release") {
+//                // 关联Android库的发布组件
 //                from(components["release"])
-//                artifact(tasks["sourcesJar"]) // 添加源码JAR
 //
-//                // 设置Maven坐标
-//                groupId = group.toString()
+//                // 配置Maven坐标
+//                groupId = "com.github.Yyaduo"
 //                artifactId = "YaduoCommon"
-//                version = version
+//                version = "1.0.10"
+//
+//                // 配置源码Jar
+//                artifact(tasks.register<Jar>("sourcesJar") {
+//                    archiveClassifier.set("sources")
+//                    from(android.sourceSets["main"].java.srcDirs)
+////                    from(android.sourceSets["main"].kotlin.srcDirs)
+//                })
+//
+//                // 配置文档Jar
+//                artifact(tasks.register<Jar>("javadocJar") {
+//                    archiveClassifier.set("javadoc")
+//                    dependsOn("javadoc")
+//                    from(tasks.named("javadoc").get().outputs)
+//                })
 //            }
 //        }
 //
-//        // 为元数据生成任务添加对sourcesJar的依赖
-//        tasks.named("generateMetadataFileForReleasePublication") {
-//            dependsOn("sourcesJar")
+//        // 可选：配置发布仓库
+//        repositories {
+//            maven {
+//                name = "GitHubPackages"
+//                url = uri("https://maven.pkg.github.com/Yyaduo/YaduoCommon")
+//                credentials {
+//                    username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
+//                    password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+//                }
+//            }
 //        }
 //    }
+//
+//    // Javadoc配置
+////    tasks.javadoc {
+////        source = android.sourceSets["main"].java.srcDirs + android.sourceSets["main"].kotlin.srcDirs
+////        classpath += project.files(android.bootClasspath.joinToString(File.pathSeparator))
+////        options {
+////            this as StandardJavadocDocletOptions
+////            encoding = "UTF-8"
+////            charSet = "UTF-8"
+////            links("https://developer.android.com/reference/")
+////            links("https://docs.oracle.com/javase/8/docs/api/")
+////            addStringOption("Xdoclint:none", "-quiet")
+////        }
+////    }
 //}
