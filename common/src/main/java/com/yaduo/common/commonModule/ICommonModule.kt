@@ -1,6 +1,7 @@
-package com.yaduo.common.applogic
+package com.yaduo.common.commonModule
 
 import android.content.Context
+import com.yaduo.common.applogic.AppLogicUtil
 
 /**
  * ### 公共模块接口
@@ -22,5 +23,5 @@ interface ICommonModule {
      * 初始化方法
      * @param context Context对象, 默认下为全局上下文
      */
-    fun initialize(context: Context = AppLogicUtil.getApp()) {}
+    fun initialize(context: Context = AppLogicUtil.getApp())
 }

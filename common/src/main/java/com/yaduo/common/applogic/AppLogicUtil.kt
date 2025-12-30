@@ -3,6 +3,11 @@ package com.yaduo.common.applogic
 import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
+import com.yaduo.common.commonModule.AutoSizeConfig
+import com.yaduo.common.commonModule.BuglyReport
+import com.yaduo.common.commonModule.Chucker
+import com.yaduo.common.commonModule.ICommonModule
+import com.yaduo.common.commonModule.MMKV
 import okhttp3.Interceptor
 
 /**
@@ -52,6 +57,7 @@ object AppLogicUtil {
         registerCommonModule(AutoSizeConfig)
         registerCommonModule(BuglyReport)
         registerCommonModule(Chucker)
+        registerCommonModule(MMKV)
         initializeCommonModule()
     }
 
@@ -88,14 +94,4 @@ object AppLogicUtil {
             0L
         }
     }
-
-    /**
-     * ### 获取Application版本信息
-     *  - 应用名
-     *  - 版本名
-     *  - 打包时间
-     *  - 使用分支
-     */
-//    fun getApplicationVersionInfo() =
-//        "${sApp.applicationInfo.name}_${BuildConfig.VERSION_NAME}_${BuildConfig.BUILD_TYPE}_${ApplicationVersion.BRANCH}"
 }

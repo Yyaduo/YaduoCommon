@@ -4,16 +4,12 @@ plugins {
     `maven-publish`
 }
 
-group = "com.github.Yyaduo"
-version = "1.0.12"
-
 android {
     namespace = "com.yaduo.common"
-    compileSdk = rootProject.extra["compileSdk"] as Int
+    compileSdk = 34
 
     defaultConfig {
-        minSdk = rootProject.extra["minSdk"] as Int
-
+        minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -45,7 +41,7 @@ android {
     }
 
 }
-afterEvaluate{
+afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("release") {
@@ -53,22 +49,34 @@ afterEvaluate{
 
                 groupId = "com.github.Yyaduo"
                 artifactId = "common"
-                version = "1.0.12"
+                version = "1.1.0"
             }
         }
     }
 }
 
 dependencies {
+    // Android 核心
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.material)
-    implementation(libs.crashreport)
-    implementation(libs.chucker)
-    implementation(libs.androidautosize)
-    api(libs.eventbus)
-    implementation(libs.okhttp)
+
+    // 功能组件 (代码中确实在用的)
+    implementation(libs.crashreport)      // Bugly
+    implementation(libs.chucker)          // Chucker
+    implementation(libs.androidautosize)  // AutoSizeConfig
+    implementation(libs.mmkv)             // MMKV
+    implementation(libs.gson)             // MMKV 中用于对象转 Json
+    api(libs.eventbus)                    // EventBus (保持 api 方便宿主使用)
+
+    // Ktor 网络相关
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
+    // 测试
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

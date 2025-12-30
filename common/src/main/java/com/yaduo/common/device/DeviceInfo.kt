@@ -3,6 +3,7 @@ package com.yaduo.common.device
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
+import android.view.WindowManager
 import com.yaduo.common.Utils
 import com.yaduo.common.applogic.AppLogicUtil
 import com.yaduo.common.log.LogUtil
@@ -44,5 +45,17 @@ object DeviceInfo {
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetwork = connectivityManager.activeNetworkInfo
         return activeNetwork != null && activeNetwork.isConnected
+    }
+
+    /**
+     * 通过屏幕宽高判断是否为竖屏
+     */
+    fun isVisualPortrait(): Boolean {
+        val windowManager =
+            AppLogicUtil.getApp().getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val display = windowManager.defaultDisplay
+        val point = android.graphics.Point()
+        display.getRealSize(point)
+        return point.x <= point.y
     }
 }

@@ -3,6 +3,8 @@ package com.yaduo.common.log
 import android.os.Process
 import android.util.Log
 import com.yaduo.common.applogic.AppLogicUtil
+import java.io.PrintWriter
+import java.io.StringWriter
 
 /**
  * @author YaDuo
@@ -58,9 +60,18 @@ object LogUtil {
      */
     fun e(
         tag: String = DEFAULT_LOG_TAG,
-        content: String
+        content: String,
+        throwable: Throwable? = null
     ) {
-        printLog(Log.ERROR, tag, content)
+        var logContent = content
+        if (throwable != null) {
+            val sw = StringWriter()
+            val pw = PrintWriter(sw)
+            throwable.printStackTrace(pw)
+            pw.flush()
+            logContent += "\r\n" + sw.toString()
+        }
+        printLog(Log.ERROR, tag, logContent)
     }
 
     /**

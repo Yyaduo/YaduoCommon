@@ -1,7 +1,10 @@
-package com.yaduo.common.applogic
+package com.yaduo.common.commonModule
 
 import android.content.Context
+import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.chuckerteam.chucker.api.RetentionManager
+import com.yaduo.common.applogic.AppLogicUtil
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
@@ -24,6 +27,9 @@ object Chucker : ICommonModule {
 
     override var isInitialized = false
 
+    /** 敏感头列表 **/
+    private val SENSITIVE_HEADERS = listOf("Authorization", "Cookie")
+
     /**
      * 全局 Chucker 拦截器实例
      *
@@ -35,10 +41,16 @@ object Chucker : ICommonModule {
      * 获取 Chucker 拦截器实例
      */
     val interceptor: Interceptor
-        get() = when {
-            isInitialized -> _chuckerInterceptor
-            else -> DefaultInterceptor()
-        }
+        get() = if (isInitialized) _chuckerInterceptor else DefaultInterceptor()
+
+    /** 全局 Chucker 收集器 **/
+    private val chuckerCollector by lazy {
+        ChuckerCollector(
+            context = AppLogicUtil.getApp(),
+            showNotification = true, // 显示通知栏入口
+            retentionPeriod = RetentionManager.Period.ONE_HOUR // 数据保留时间
+        )
+    }
 
     override fun initialize(context: Context) {
         if (isInitialized) return
@@ -69,8 +81,9 @@ object Chucker : ICommonModule {
      */
     private fun createChuckerInterceptor(context: Context): Interceptor =
         ChuckerInterceptor.Builder(context)
+            .collector(chuckerCollector)
             .maxContentLength(512_000L) // 限制捕获数据大小
-            .redactHeaders("Authorization", "Cookie") // 敏感头脱敏
+            .redactHeaders(*SENSITIVE_HEADERS.toTypedArray()) // 敏感头脱敏
             .alwaysReadResponseBody(true) // 强制读取响应体
             .build()
 
