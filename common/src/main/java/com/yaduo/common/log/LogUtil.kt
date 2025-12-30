@@ -2,7 +2,9 @@ package com.yaduo.common.log
 
 import android.os.Process
 import android.util.Log
-import com.yaduo.common.ApplicationVersion
+import com.yaduo.common.applogic.AppLogicUtil
+import java.io.PrintWriter
+import java.io.StringWriter
 
 /**
  * @author YaDuo
@@ -12,13 +14,13 @@ import com.yaduo.common.ApplicationVersion
 object LogUtil {
 
     /** 默认日志的TAG **/
-    private const val DEFAULT_LOG_TAG = ApplicationVersion.PACKAGE_NAME
+    private val DEFAULT_LOG_TAG = AppLogicUtil.getApp().applicationInfo.packageName
 
     /** 默认日志文件名 **/
-    private const val DEFAULT_LOG_FILE_NAME = "${ApplicationVersion.APP_NAME}_log"
+    private val DEFAULT_LOG_FILE_NAME = "${AppLogicUtil.getApp().applicationInfo.name}_log"
 
     /** 是否需要记录调用栈信息，在Debug包下为true **/
-    private var isNeedPrintStack: Boolean = ApplicationVersion.DEBUG or true
+    private var isNeedPrintStack: Boolean = true
 
     /** 当前日志调用栈信息，用于记录日志的类名、方法名、文件名和行号 **/
     private var stackTraceElement: StackTraceElement? = null
@@ -58,9 +60,18 @@ object LogUtil {
      */
     fun e(
         tag: String = DEFAULT_LOG_TAG,
-        content: String
+        content: String,
+        throwable: Throwable? = null
     ) {
-        printLog(Log.ERROR, tag, content)
+        var logContent = content
+        if (throwable != null) {
+            val sw = StringWriter()
+            val pw = PrintWriter(sw)
+            throwable.printStackTrace(pw)
+            pw.flush()
+            logContent += "\r\n" + sw.toString()
+        }
+        printLog(Log.ERROR, tag, logContent)
     }
 
     /**

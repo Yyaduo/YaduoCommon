@@ -1,4 +1,4 @@
-package com.yaduo.common.applogic
+package com.yaduo.common.commonModule
 
 import android.app.Activity
 import android.content.Context

@@ -1,14 +1,16 @@
 [versions]
 agp = "8.9.1"
 androidautosize = "v1.2.1"
+androidMavenGradlePlugin = "2.1"
 crashreport = "latest.release"
 eventbus = "3.3.1"
+gradle = "4.0.0"
 kotlin = "2.0.21"
 coreKtx = "1.13.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-chucker = "3.5.2"
+chucker = "4.2.0"
 lifecycleRuntimeKtx = "2.8.3"
 lifecycleProcess = "2.2.0"
 appcompat = "1.7.0"
@@ -16,16 +18,21 @@ lottie = "6.4.0"
 material = "1.12.0"
 media3 = "1.4.1"
 coroutines = "1.8.0"
+mmkv = "2.2.4"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
+ktor = "3.3.3"
 gson = "2.11.0"
 constraintLayout = "2.1.4"
 cardview = "1.0.0"
+publish = "0.28.0"
 
 [libraries]
 # ================== Core Android 核心Android库 ==================
+android-maven-gradle-plugin = { module = "com.github.dcendents:android-maven-gradle-plugin", version.ref = "androidMavenGradlePlugin" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" } # Kotlin扩展的核心Android功能
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" } # 提供向后兼容支持
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" } # Material Design组件实现
 
 # ================== UI相关库 ==================
@@ -54,12 +61,17 @@ retrofit-converter-gson = { module = "com.squareup.retrofit2:converter-gson", ve
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" } # HTTP客户端实现
 okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" } # HTTP请求日志拦截器
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" } # JSON解析库
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" } # 内容协商（JSON序列化/反序列化）
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" } # Ktor核心客户端
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" } # OKHttp引擎
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" } # Kotlinx序列化JSON
 
 # ================== ThirdPartyPlugins 第三方插件 ==================
 crashreport = { module = "com.tencent.bugly:crashreport", version.ref = "crashreport" } # 腾讯Bugly崩溃监控
 chucker = { module = "com.github.chuckerteam.chucker:library", version.ref = "chucker" } # 网络监控库
 androidautosize = { module = "com.github.JessYanCoding:AndroidAutoSize", version.ref = "androidautosize" } # 屏幕适配方案
 eventbus = { module = "org.greenrobot:eventbus", version.ref = "eventbus" } # 事件总线
+mmkv = { module = "com.tencent:mmkv-static", version.ref = "mmkv" } # 腾讯MMKV键值存储
 
 # ================== Testing 测试相关 ==================
 junit = { group = "junit", name = "junit", version.ref = "junit" } # 单元测试框架
@@ -72,3 +84,4 @@ android-application = { id = "com.android.application", version.ref = "agp" } # 
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" } # Kotlin Android支持插件
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" } # Kotlin Compose优化插件
 android-library = { id = "com.android.library", version.ref = "agp" } # Android库模块构建插件
+maven-Publish = { id = "com.vanniktech.maven.publish", version.ref = "publish" } # Maven发布插件
