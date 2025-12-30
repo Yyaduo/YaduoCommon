@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -5,7 +7,7 @@ plugins {
 }
 
 group = "com.github.Yyaduo"
-version = "1.1.1"
+version = "1.1.2"
 
 android {
     namespace = "com.yaduo.common"
@@ -32,8 +34,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
     }
 
     publishing {
@@ -52,7 +56,7 @@ afterEvaluate {
 
                 groupId = "com.github.Yyaduo"
                 artifactId = "common"
-                version = "1.1.1"
+                version = "1.1.2"
             }
         }
     }

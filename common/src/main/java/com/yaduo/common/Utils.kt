@@ -4,6 +4,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.yaduo.common.extra.getOrNull
 import com.yaduo.common.log.LogUtil
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -46,9 +47,14 @@ object Utils {
      * 通过 [ProcessLifecycleOwner] 监听应用进程的生命周期，替代传统的ActivityLifeCycleCallback实现
      */
     fun registerLifecycleEventObserver() {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(object : LifecycleEventObserver {
+        val lifecycleOwner = ProcessLifecycleOwner.getOrNull() ?: run {
+            LogUtil.e(content = "ProcessLifecycleOwner获取失败，无法注册生命周期观察者")
+            return
+        }
+
+        lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-                LogUtil.d(content = "onProcessLifecycleChanged:  $event")
+                LogUtil.i(content = "onProcessLifecycleChanged:  $event")
             }
         })
     }
