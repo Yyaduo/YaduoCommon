@@ -47,11 +47,6 @@ object AutoSizeConfig : ICommonModule {
 
     override var isInitialized = false
 
-    init {
-        disableAutoSizeAdapt()
-        LogUtil.i(TAG, "AutoSizeConfig 静态初始化：默认禁用所有屏幕适配")
-    }
-
     /**
      * 初始化 AndroidAutoSize 崩溃报告系统
      * 在这里设置了监听适配前和适配后，并打上日志
@@ -82,7 +77,8 @@ object AutoSizeConfig : ICommonModule {
      * 禁用 AndroidAutoSize 所有适配逻辑
      * 抵消 ContentProvider 自动初始化带来的隐式适配
      */
-    private fun disableAutoSizeAdapt() {
+    fun disableAutoSizeAdapt() {
+        LogUtil.i(TAG, "禁用屏幕适配")
         AutoSizeConfig.getInstance().apply {
             isBaseOnWidth = false
             setExcludeFontScale(true)
