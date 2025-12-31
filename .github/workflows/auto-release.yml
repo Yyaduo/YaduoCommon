@@ -103,7 +103,7 @@ jobs:
           # 1. 获取本次提交的作者名称，兜底用GitHub Actor
           COMMIT_AUTHOR_NAME="${{ github.event.head_commit.author.name || github.actor }}"
           # 2. 获取本次提交的作者邮箱，兜底用 GitHub 官方noreply邮箱
-          COMMIT_AUTHOR_EMAIL="${{ github.event.head_commit.author.email || github.actor }}@users.noreply.github.com"
+          COMMIT_AUTHOR_EMAIL="${{ github.event.head_commit.author.email || github.actor@users.noreply.github.com }}"
           
           git config --global user.name "$COMMIT_AUTHOR_NAME"
           git config --global user.email "$COMMIT_AUTHOR_EMAIL"
@@ -154,4 +154,11 @@ jobs:
               dependencies {
                   implementation 'com.github.${{ github.repository_owner }}:${{ github.event.repository.name }}:${{ steps.get_version.outputs.TAG_NAME }}'
               }
+              ```
+              ```toml
+              [libraries]
+              yaduo-common = { module = "com.github.Yyaduo:YaduoCommon", version.ref = "yaduocommon" }
+  
+              [versions]
+              yaduocommon = "${{ steps.get_version.outputs.TAG_NAME }}"
               ```
