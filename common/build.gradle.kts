@@ -51,9 +51,9 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.github.Yyaduo"
+                groupId = project.property("GROUP_ID").toString()
                 artifactId = "common"
-                version = "1.1.10"
+                version = project.property("VERSION_NAME").toString()
             }
         }
     }

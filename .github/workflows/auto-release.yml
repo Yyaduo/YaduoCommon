@@ -41,15 +41,21 @@ jobs:
       - name: step_two -> 读取版本号
         id: get_version
         run: |
-          set -e  # 任意命令失败立即退出
+          # 任意命令失败立即退出
+          set -e 
           
-          # 优先从gradle.properties读取VERSION_NAME
-          VERSION_NAME=$(grep -E '^VERSION_NAME\s*=' gradle.properties | awk -F'=' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')
+          # ========== 读取gradle.properties ==========
+          # 过滤出VERSION_NAME行
+          VERSION_LINE=$(grep '^VERSION_NAME=' gradle.properties)
+          # 按等号分割，取后半部分，去掉首尾空格
+          VERSION_NAME=$(echo "$VERSION_LINE" | cut -d'=' -f2 | tr -d ' ' | tr -d '\t')
           
-          # 备用：从common/build.gradle.kts读取version（适配KTS格式）
+          # ========== 备用：读取build.gradle.kts==========
           if [ -z "$VERSION_NAME" ]; then
-            echo "未从gradle.properties读取到版本号，尝试从common/build.gradle.kts读取..."
-            VERSION_NAME=$(grep -E 'version\s*=' common/build.gradle.kts | head -1 | awk -F'["\']' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')
+            echo "未从gradle.properties读取版本号，尝试读取common/build.gradle.kts..."
+            # 过滤version行 + 按引号分割 + 去空格
+            VERSION_LINE=$(grep 'version =' common/build.gradle.kts | head -1)
+            VERSION_NAME=$(echo "$VERSION_LINE" | cut -d'"' -f2 | tr -d ' ' | tr -d '\t')
           fi
           
           # 最终校验版本号
