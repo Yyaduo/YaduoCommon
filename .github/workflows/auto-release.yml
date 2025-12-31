@@ -1,0 +1,139 @@
+# .github/workflows/auto-release.yml
+name: 自动发布Release
+
+# 触发条件：Push到目标分支
+on:
+  push:
+    branches: [
+      main,
+      master,
+      release-branch-v*,
+    ]
+    # 只监听相关文件变更时触发并排除本文件修改触发
+    paths:
+      - 'app/build.gradle.kts'
+      - 'common/build.gradle.kts'
+      - 'gradle.properties'
+      - '**.toml'
+      - '**.kt'
+      - '**.java'
+      - - '!.github/workflows/auto-release.yml'
+
+# 配置工作流权限
+permissions:
+  contents: write  # 允许读写仓库内容（创建Tag/Release）
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest  # 编译环境
+    # 失败时立即终止，避免无效步骤
+    continue-on-error: false
+    steps:
+      # 步骤1：拉取仓库代码
+      - name: step_one -> 拉取代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 拉取所有历史，方便创建Tag
+          # 配置git用户（提前配置，避免后续重复）
+          persist-credentials: true
+
+      # 步骤2：读取版本号
+      - name: step_two -> 读取版本号
+        id: get_version
+        run: |
+          set -e  # 任意命令失败立即退出
+          
+          # 优先从gradle.properties读取VERSION_NAME
+          VERSION_NAME=$(grep -E '^VERSION_NAME\s*=' gradle.properties | cut -d'=' -f2 | xargs)
+          
+          # 备用：从common/build.gradle.kts读取version（适配KTS格式）
+          if [ -z "$VERSION_NAME" ]; then
+            echo "未从gradle.properties读取到版本号，尝试从common/build.gradle.kts读取..."
+            VERSION_NAME=$(grep -E 'version\s*=\s*["'\''].*["'\'']' common/build.gradle.kts | head -1 | sed -E 's/version\s*=\s*["'"'"](.*)["'"'"]/\1/' | xargs)
+          fi
+          
+          # 最终校验版本号
+          if [ -z "$VERSION_NAME" ]; then
+            echo "ERROR: 未从gradle.properties或build.gradle.kts读取到版本号！"
+            exit 1
+          fi
+          
+          # 生成发布相关变量
+          TODAY_DATE=$(date +'%Y-%m-%d')
+          TAG_NAME="release-v${VERSION_NAME}"
+          RELEASE_TITLE="${VERSION_NAME} - ${TODAY_DATE}"
+          
+          # 输出变量（关键：补充TODAY_DATE输出）
+          echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "RELEASE_TITLE=${RELEASE_TITLE}" >> $GITHUB_OUTPUT
+          echo "TODAY_DATE=${TODAY_DATE}" >> $GITHUB_OUTPUT
+          
+          # 打印日志（便于排查问题）
+          echo "===== 发布信息 ====="
+          echo "版本号：${VERSION_NAME}"
+          echo "Tag名称：${TAG_NAME}"
+          echo "Release标题：${RELEASE_TITLE}"
+          echo "发布日期：${TODAY_DATE}"
+          echo "===================="
+
+      # 步骤3：检查Tag是否已存在（避免重复发布）
+      - name: step_three -> 检查Tag是否存在
+        id: check_tag
+        run: |
+          if git rev-parse "refs/tags/${{ steps.get_version.outputs.TAG_NAME }}" >/dev/null 2>&1; then
+            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Tag ${TAG_NAME} 已存在，跳过创建"
+          else
+            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
+            echo "✅ Tag ${TAG_NAME} 不存在，准备创建"
+          fi
+
+      # 步骤4：创建Tag（仅Tag不存在时执行）
+      - name: step_four -> 创建Git Tag
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        run: |
+          set -e
+          # 配置git用户信息（Actions默认无身份）
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag -a ${{ steps.get_version.outputs.TAG_NAME }} -m "Release ${{ steps.get_version.outputs.RELEASE_TITLE }}"
+          
+          # 推送Tag（重试机制，避免网络问题失败）
+          for i in {1..3}; do
+            if git push origin ${{ steps.get_version.outputs.TAG_NAME }}; then
+              echo "✅ Tag推送成功"
+              break
+            else
+              echo "⚠️ Tag推送失败，第${i}次重试..."
+              sleep 2
+              if [ $i -eq 3 ]; then
+                echo "❌ Tag推送3次失败，终止流程"
+                exit 1
+              fi
+            fi
+          done
+
+      # 步骤5：创建GitHub Release（自动填充Tag/Title/分支）
+      - name: step_five -> 创建Release
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
+          name: ${{ steps.get_version.outputs.RELEASE_TITLE }}  # 使用带日期的标题
+          target_commitish: ${{ github.ref_name }}
+          # 显式配置发布类型（非草稿/非预发布）
+          draft: false
+          prerelease: false
+          body: |
+            ## ${{ github.event.repository.name }} + ${{ steps.get_version.outputs.RELEASE_TITLE }}
+            - 发布分支：${{ github.ref_name }}
+            - 提交哈希：${{ github.sha }}
+            - 发布日期：${{ steps.get_version.outputs.TODAY_DATE }}
+            - 提交信息：${{ github.event.head_commit.message || '无提交信息' }}
+            - JitPack依赖示例：
+              ```gradle
+              dependencies {
+                  implementation 'com.github.${{ github.repository_owner }}:${{ github.event.repository.name }}:${{ steps.get_version.outputs.VERSION_NAME }}'
+              }
+              ```
