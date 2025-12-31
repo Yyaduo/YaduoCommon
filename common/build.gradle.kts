@@ -53,7 +53,7 @@ afterEvaluate {
 
                 groupId = "com.github.Yyaduo"
                 artifactId = "common"
-                version = "1.1.3"
+                version = "1.1.4"
             }
         }
     }
