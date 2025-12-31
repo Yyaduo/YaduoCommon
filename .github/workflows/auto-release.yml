@@ -17,7 +17,7 @@ on:
       - '**.toml'
       - '**.kt'
       - '**.java'
-      - - '!.github/workflows/auto-release.yml'
+      - '!.github/workflows/auto-release.yml'
 
 # 配置工作流权限
 permissions:
