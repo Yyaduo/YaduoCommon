@@ -152,7 +152,7 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ## ${{ github.event.repository.name }} + ${{ steps.get_version.outputs.RELEASE_TITLE }}
+            ## ${{ github.event.repository.name }} : ${{ steps.get_version.outputs.RELEASE_TITLE }}
             - 发布分支：${{ github.ref_name }}
             - 提交哈希：${{ github.sha }}
             - 发布日期：${{ steps.get_version.outputs.TODAY_DATE }}
