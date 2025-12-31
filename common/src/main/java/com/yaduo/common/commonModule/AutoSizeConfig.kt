@@ -35,6 +35,7 @@ import java.util.Locale
  * - 需在 Application onCreate 中初始化
  * - 适配单位推荐使用 dp 或 pt
  * - 适配策略可根据业务需求自定义
+ * - *** 当且仅当主动调用 initialize() 方法时才启用适配，否则完全禁用 ***
  *
  * @see <a href="https://github.com/JessYanCoding/AndroidAutoSize">AndroidAutoSize GitHub</a>
  * @author YaDuo
@@ -42,8 +43,14 @@ import java.util.Locale
  */
 object AutoSizeConfig : ICommonModule {
 
+    private const val TAG = "AutoSizeConfig"
+
     override var isInitialized = false
 
+    init {
+        disableAutoSizeAdapt()
+        LogUtil.i(TAG, "AutoSizeConfig 静态初始化：默认禁用所有屏幕适配")
+    }
 
     /**
      * 初始化 AndroidAutoSize 崩溃报告系统
@@ -53,30 +60,33 @@ object AutoSizeConfig : ICommonModule {
     override fun initialize(context: Context) {
         if (isInitialized) return
 
-        AutoSizeConfig.getInstance().setOnAdaptListener(object : onAdaptListener {
-            override fun onAdaptBefore(target: Any?, activity: Activity?) {
-                LogUtil.d(
-                    content = String.format(
-                        Locale.ENGLISH,
-                        "%s onAdaptBefore",
-                        target?.javaClass?.name
-                    )
-                )
-            }
+        LogUtil.i(TAG, "AutoSizeConfig 主动初始化：启用屏幕适配")
+        AutoSizeConfig.getInstance().apply {
+            isBaseOnWidth = true
+            setExcludeFontScale(false)
+            setOnAdaptListener(object : onAdaptListener {
+                override fun onAdaptBefore(target: Any?, activity: Activity?) {
+                    LogUtil.d(content = "${target?.javaClass?.name} onAdaptBefore")
+                }
 
-            override fun onAdaptAfter(target: Any?, activity: Activity?) {
-                LogUtil.d(
-                    content = String.format(
-                        Locale.ENGLISH,
-                        "%s onAdaptAfter",
-                        target?.javaClass?.name
-                    )
-                )
-            }
-
-        })
+                override fun onAdaptAfter(target: Any?, activity: Activity?) {
+                    LogUtil.d(content = "${target?.javaClass?.name} onAdaptAfter")
+                }
+            })
+        }
 
         isInitialized = true
+    }
+
+    /**
+     * 禁用 AndroidAutoSize 所有适配逻辑
+     * 抵消 ContentProvider 自动初始化带来的隐式适配
+     */
+    private fun disableAutoSizeAdapt() {
+        AutoSizeConfig.getInstance().apply {
+            isBaseOnWidth = false
+            setExcludeFontScale(true)
+        }
     }
 
 }
