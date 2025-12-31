@@ -44,12 +44,12 @@ jobs:
           set -e  # 任意命令失败立即退出
           
           # 优先从gradle.properties读取VERSION_NAME
-          VERSION_NAME=$(grep -E '^VERSION_NAME\s*=' gradle.properties | cut -d'=' -f2 | xargs)
+          VERSION_NAME=$(grep -E '^VERSION_NAME\s*=' gradle.properties | awk -F'=' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')
           
           # 备用：从common/build.gradle.kts读取version（适配KTS格式）
           if [ -z "$VERSION_NAME" ]; then
             echo "未从gradle.properties读取到版本号，尝试从common/build.gradle.kts读取..."
-            VERSION_NAME=$(grep -E 'version\s*=\s*["'\''].*["'\'']' common/build.gradle.kts | head -1 | sed -E 's/version\s*=\s*["'"'"](.*)["'"'"]/\1/' | xargs)
+            VERSION_NAME=$(grep -E 'version\s*=' common/build.gradle.kts | head -1 | awk -F'["\']' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')
           fi
           
           # 最终校验版本号
