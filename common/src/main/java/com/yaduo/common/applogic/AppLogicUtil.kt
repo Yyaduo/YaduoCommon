@@ -27,12 +27,12 @@ object AppLogicUtil {
     /**
      * 初始化方法，传入Application的实例
      *
-     * 默认先禁用屏幕适配方案，配置后再启动
+     * 自动检测 Manifest 适配配置并按需启用 / 禁用
      * @param app 在Application创建时传入上下文
      */
     fun initialize(app: Application) {
         sApp = app
-        AutoSizeConfig.disableAutoSizeAdapt()
+        AutoSizeConfig.autoCheckAndAdapt(app)
     }
 
     /**
