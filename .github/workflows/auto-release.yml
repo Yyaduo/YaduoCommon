@@ -89,10 +89,10 @@ jobs:
         run: |
           if git rev-parse "refs/tags/${{ steps.get_version.outputs.TAG_NAME }}" >/dev/null 2>&1; then
             echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Tag ${TAG_NAME} 已存在，跳过创建"
+            echo "⚠️ Tag ${{ steps.get_version.outputs.TAG_NAME }} 已存在，跳过创建"
           else
             echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
-            echo "✅ Tag ${TAG_NAME} 不存在，准备创建"
+            echo "✅ Tag ${{ steps.get_version.outputs.TAG_NAME }} 不存在，准备创建"
           fi
 
       # 步骤4：创建Tag（仅Tag不存在时执行）
@@ -100,12 +100,24 @@ jobs:
         if: steps.check_tag.outputs.TAG_EXISTS == 'false'
         run: |
           set -e
-          # 配置git用户信息（Actions默认无身份）
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git tag -a ${{ steps.get_version.outputs.TAG_NAME }} -m "Release ${{ steps.get_version.outputs.RELEASE_TITLE }}"
+          # 1. 获取本次提交的作者名称，兜底用GitHub Actor
+          COMMIT_AUTHOR_NAME="${{ github.event.head_commit.author.name || github.actor }}"
+          # 2. 获取本次提交的作者邮箱，兜底用 GitHub 官方noreply邮箱
+          COMMIT_AUTHOR_EMAIL="${{ github.event.head_commit.author.email || github.actor }}@users.noreply.github.com"
           
-          # 推送Tag（重试机制，避免网络问题失败）
+          git config --global user.name "$COMMIT_AUTHOR_NAME"
+          git config --global user.email "$COMMIT_AUTHOR_EMAIL"
+          
+          # 打印配置的用户信息
+          echo "🔧 配置的Git用户信息："
+          echo "   名称：$COMMIT_AUTHOR_NAME"
+          echo "   邮箱：$COMMIT_AUTHOR_EMAIL"
+          
+          TAG_NAME="${{ steps.get_version.outputs.TAG_NAME }}"
+          RELEASE_TITLE="${{ steps.get_version.outputs.RELEASE_TITLE }}"
+          git tag -a "$TAG_NAME" -m "Release $RELEASE_TITLE"
+          
+          # 推送Tag
           for i in {1..3}; do
             if git push origin ${{ steps.get_version.outputs.TAG_NAME }}; then
               echo "✅ Tag推送成功"
@@ -140,6 +152,6 @@ jobs:
             - JitPack依赖示例：
               ```gradle
               dependencies {
-                  implementation 'com.github.${{ github.repository_owner }}:${{ github.event.repository.name }}:${{ steps.get_version.outputs.VERSION_NAME }}'
+                  implementation 'com.github.${{ github.repository_owner }}:${{ github.event.repository.name }}:${{ steps.get_version.outputs.TAG_NAME }}'
               }
               ```
