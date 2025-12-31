@@ -6,9 +6,6 @@ plugins {
     `maven-publish`
 }
 
-group = "com.github.Yyaduo"
-version = "1.1.2"
-
 android {
     namespace = "com.yaduo.common"
     compileSdk = 34
@@ -56,7 +53,7 @@ afterEvaluate {
 
                 groupId = "com.github.Yyaduo"
                 artifactId = "common"
-                version = "1.1.2"
+                version = "1.1.3"
             }
         }
     }

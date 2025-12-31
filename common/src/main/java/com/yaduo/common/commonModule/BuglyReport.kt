@@ -6,6 +6,7 @@ import com.tencent.bugly.crashreport.CrashReport
 import com.tencent.bugly.crashreport.CrashReport.UserStrategy
 import com.yaduo.common.applogic.AppLogicUtil
 import com.yaduo.common.device.DeviceInfo
+import com.yaduo.common.log.LogUtil
 
 /**
  * ### Bugly 崩溃报告系统集成模块
@@ -32,6 +33,7 @@ import com.yaduo.common.device.DeviceInfo
  *
  * #### 注意事项：
  * - 必须在主线程调用初始化
+ * - 初始化前应在 AppLogicUtil 中设置 appIdForBuglyReport，否则初始化无效
  * - 需在 Application onCreate 中尽早初始化
  * - 发布版本需关闭调试模式（已自动处理）
  * - 用户ID应在用户登录后更新
@@ -41,6 +43,8 @@ import com.yaduo.common.device.DeviceInfo
  * @since 2025-05-14 16:42:06
  */
 object BuglyReport : ICommonModule {
+
+    private const val TAG = "BuglyReport"
 
     override var isInitialized = false
 
@@ -58,6 +62,13 @@ object BuglyReport : ICommonModule {
     override fun initialize(context: Context) {
         if (isInitialized) return
 
+        val appId = AppLogicUtil.appIdForBuglyReport.run {
+            this.ifEmpty {
+                LogUtil.w(TAG, "appIdForBuglyReport is empty, BuglyReport initialize failed")
+                return
+            }
+        }
+
         // 用户策略
         val userStrategy = UserStrategy(context).apply {
             deviceID = DeviceInfo.getUuid()
@@ -69,7 +80,7 @@ object BuglyReport : ICommonModule {
         // 初始化
         CrashReport.initCrashReport(
             context,
-            AppLogicUtil.appIdForBuglyReport,
+            appId,
             false,
             userStrategy
         )
