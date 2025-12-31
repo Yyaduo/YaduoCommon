@@ -65,9 +65,9 @@ jobs:
           fi
           
           # 生成发布相关变量
-          TODAY_DATE=$(date +'%Y-%m-%d')
-          TAG_NAME="release-v${VERSION_NAME}"
-          RELEASE_TITLE="${VERSION_NAME} - ${TODAY_DATE}"
+          TODAY_DATE=$(date +'%Y.%m.%d')
+          TAG_NAME=release-v${VERSION_NAME}
+          RELEASE_TITLE="${VERSION_NAME}-${TODAY_DATE}"
           
           # 输出变量（关键：补充TODAY_DATE输出）
           echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_OUTPUT
