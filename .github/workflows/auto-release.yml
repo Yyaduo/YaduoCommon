@@ -113,8 +113,8 @@ jobs:
           git config --global user.email "$COMMIT_AUTHOR_EMAIL"
           
           # 输出提交的用户信息
-          echo "$COMMIT_AUTHOR_NAME=${$COMMIT_AUTHOR_NAME}" >> $GITHUB_OUTPUT
-          echo "$COMMIT_AUTHOR_EMAIL=${$COMMIT_AUTHOR_EMAIL}" >> $GITHUB_OUTPUT
+          echo "commit_author_name=${COMMIT_AUTHOR_NAME}" >> $GITHUB_OUTPUT
+          echo "commit_author_email=${COMMIT_AUTHOR_EMAIL}" >> $GITHUB_OUTPUT
           
           # 打印配置的用户信息
           echo "🔧 配置的Git用户信息："
@@ -157,7 +157,7 @@ jobs:
             - 发布分支：${{ github.ref_name }}
             - 提交哈希：${{ github.sha }}
             - 发布日期：${{ steps.get_version.outputs.TODAY_DATE }}
-            - 代码提交作者：${{ steps.build_release.outputs.$COMMIT_AUTHOR_NAME }} <${{ steps.build_release.outputs.$COMMIT_AUTHOR_EMAIL }}>
+            - 代码提交作者：${{ steps.build_release.outputs.commit_author_name }} <${{ steps.build_release.outputs.commit_author_email }}>
             - Release 创建者：GitHub Actions（自动化发布）
             - 提交信息：${{ github.event.head_commit.message || '无提交信息' }}
             - JitPack依赖示例：
