@@ -188,27 +188,53 @@ jobs:
           echo "JitPack API：${JITPACK_API_URL}"
           echo "==========================="
 
+          # 前置检查：确认Tag已推送到远程（延迟5秒，等待GitHub同步）
+          echo "🔍 检查远程Tag是否存在..."
+          sleep 5
+          if git ls-remote --tags origin "${TAG_NAME}" | grep -q "${TAG_NAME}"; then
+            echo "✅ 远程Tag已存在，继续触发编译"
+          else
+            echo "⚠️ 远程Tag未同步，延迟10秒后重试检查..."
+            sleep 10
+            if ! git ls-remote --tags origin "${TAG_NAME}" | grep -q "${TAG_NAME}"; then
+              echo "❌ 远程Tag同步失败，跳过JitPack触发（避免无效请求）"
+              exit 0  # 跳过失败，不终止整个工作流
+            fi
+          fi
+          
           # 发送POST请求触发编译（重试3次，避免网络问题）
           for i in {1..3}; do
-            echo "第${i}次尝试触发JitPack编译..."
-            # 发送请求并保存响应
+            echo "📡 第${i}次尝试触发JitPack编译..."
+            # 增加超时、详细输出、SSL容错、User-Agent
             RESPONSE=$(curl -s -X POST \
-              -H "User-Agent: GitHub Actions/${{ github.run_id }}" \
+              --connect-timeout 10 \
+              --max-time 30 \
+              -k \
+              -H "User-Agent: GitHub Actions/${{ github.run_id }} (${{ github.actor }})" \
+              -H "Accept: application/json" \
               "$JITPACK_API_URL")
-
-            echo "JitPack响应：${RESPONSE}"
-
-            # 检查响应是否包含成功触发的关键词
-            if echo "$RESPONSE" | grep -qiE "Building|Queued|Success"; then
-              echo "✅ JitPack编译触发成功！"
+          
+            # 打印调试信息
+            echo "📝 JitPack响应（原始）：${RESPONSE:-"空响应"}"
+          
+            # 宽松的成功判断（空响应也尝试跳过，避免误判）
+            if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -qiE "Building|Queued|Success|Created|Found"; then
+              echo "✅ JitPack编译触发成功！响应：${RESPONSE}"
               break
+            elif [ -z "$RESPONSE" ]; then
+              echo "⚠️ 第${i}次触发：JitPack响应为空（可能是网络/服务临时问题）"
+              sleep 5  # 空响应时延长重试间隔
             else
               echo "⚠️ 第${i}次触发失败，响应：${RESPONSE}"
-              sleep 3  # 间隔3秒重试
-              if [ $i -eq 3 ]; then
-                echo "❌ JitPack编译触发3次失败，终止流程"
-                exit 1
-              fi
+              sleep 5
+            fi
+          
+            # 最后一次重试失败时，不终止整个工作流（仅警告）
+            if [ $i -eq 3 ]; then
+              echo "⚠️ JitPack编译触发3次失败（非致命错误），请手动访问以下地址触发："
+              echo "🔗 JitPack手动触发地址：https://jitpack.io/#${REPO_FULL_NAME}/${TAG_NAME}"
+              echo "🔗 编译日志地址：https://jitpack.io/com/github/${{ github.repository_owner }}/${{ github.event.repository.name }}/${TAG_NAME}/build.log"
+              exit 0  # 退出码0，不终止工作流
             fi
           done
 
