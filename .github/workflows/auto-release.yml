@@ -176,44 +176,47 @@ jobs:
         # 仅当 Tag 不存在（创建了新 Release）且前序步骤成功时执行
         if: steps.check_tag.outputs.TAG_EXISTS == 'false' && success()
         run: |
-          set -e
-          # 构造 JitPack 编译 API 地址
-          REPO_FULL_NAME="${{ github.repository }}"  # 格式：用户名/仓库名
+          # 核心修复1：关闭严格模式，避免单个命令失败终止流程
+          set +e
+          # 构造 JitPack 相关地址
+          REPO_FULL_NAME="${{ github.repository }}"
           TAG_NAME="${{ steps.get_version.outputs.TAG_NAME }}"
           JITPACK_API_URL="https://jitpack.io/api/builds/${REPO_FULL_NAME}/${TAG_NAME}"
           JITPACK_CHECK_URL="https://jitpack.io/com/github/${{ github.repository_owner }}/${{ github.event.repository.name }}/${TAG_NAME}"
+          # JitPack仓库主页（用于强制刷新仓库数据）
+          JITPACK_REPO_URL="https://jitpack.io/#${REPO_FULL_NAME}"
 
-          echo "===== 触发JitPack编译 ====="
+          echo "===== 触发JitPack编译（最终修复版） ====="
           echo "仓库地址：${REPO_FULL_NAME}"
           echo "Tag版本：${TAG_NAME}"
           echo "JitPack API：${JITPACK_API_URL}"
-          echo "JitPack检查地址：${JITPACK_CHECK_URL}"
-          echo "==========================="
+          echo "=========================================="
 
-          echo "⏳ 等待30秒，让JitPack同步GitHub Tag..."
-          sleep 30
+          # 核心修复2：大幅延长同步时间（90秒），确保JitPack拉取到GitHub的Tag/Release
+          echo "⏳ 等待90秒，让JitPack同步GitHub的Tag和Release..."
+          sleep 90
 
-          # 先验证JitPack是否能识别该Tag（重试3次，每次间隔10秒）
+          # 核心修复3：先访问JitPack仓库主页，强制刷新仓库数据
+          echo "🔄 强制刷新JitPack仓库数据..."
+          curl -s --connect-timeout 20 --max-time 40 -k "$JITPACK_REPO_URL" > /dev/null
+
+          # 验证JitPack是否识别Tag（重试2次即可，避免过度等待）
           TAG_FOUND=false
-          for i in {1..3}; do
+          for i in {1..2}; do
             echo "🔍 第${i}次检查JitPack是否识别Tag..."
             CHECK_RESPONSE=$(curl -s --connect-timeout 20 --max-time 60 -k "$JITPACK_CHECK_URL")
             CURL_EXIT_CODE=$?
           
-            # 处理curl超时（exit code 28）
-            if [ $CURL_EXIT_CODE -eq 28 ]; then
-              echo "⚠️ 第${i}次检查：curl请求超时（exit code 28），15秒后重试..."
-              sleep 15
+            # 处理curl错误（超时/连接失败）
+            if [ $CURL_EXIT_CODE -ne 0 ]; then
+              echo "⚠️ 第${i}次检查：curl请求失败（exit code $CURL_EXIT_CODE），20秒后重试..."
+              sleep 20
               continue
-            # 处理其他curl错误
-            elif [ $CURL_EXIT_CODE -ne 0 ]; then
-              echo "⚠️ 第${i}次检查：curl请求失败（exit code $CURL_EXIT_CODE），15秒后重试..."
-              sleep 15
-              continue
+            fi
             # 检查Tag是否存在
-            elif echo "$CHECK_RESPONSE" | grep -qi "not found"; then
-              echo "⚠️ 第${i}次检查：JitPack未识别到Tag，15秒后重试..."
-              sleep 15
+            if echo "$CHECK_RESPONSE" | grep -qi "not found"; then
+              echo "⚠️ 第${i}次检查：JitPack未识别到Tag，20秒后重试..."
+              sleep 20
             else
               echo "✅ JitPack已识别到Tag，开始触发编译..."
               TAG_FOUND=true
@@ -221,41 +224,41 @@ jobs:
             fi
           done
           
-          # 若检查多次失败/超时，直接跳过检查，尝试触发编译（兜底策略）
+          # 兜底策略：跳过检查直接触发编译
           if [ "$TAG_FOUND" = false ]; then
-            echo "⚠️ JitPack Tag检查失败/超时，跳过检查直接尝试触发编译..."
+            echo "⚠️ JitPack Tag检查失败，直接尝试触发编译..."
           fi
           
-          # 触发编译（重试3次，适配超时/空响应）
+          # 触发编译（重试3次，间隔20秒，适配JitPack慢响应）
           BUILD_SUCCESS=false
           for i in {1..3}; do
             echo "📡 第${i}次尝试触发JitPack编译..."
             RESPONSE=$(curl -s -X POST \
               --connect-timeout 20 \
-              --max-time 40 \
+              --max-time 60 \
               -k \
               -H "User-Agent: GitHub Actions/${{ github.run_id }} (${{ github.actor }})" \
               -H "Accept: application/json" \
               "$JITPACK_API_URL")
             CURL_EXIT_CODE=$?
           
-            # 处理curl超时/错误
+            # 处理curl错误
             if [ $CURL_EXIT_CODE -ne 0 ]; then
-              echo "⚠️ 第${i}次触发：curl请求失败（exit code $CURL_EXIT_CODE），15秒后重试..."
-              sleep 15
+              echo "⚠️ 第${i}次触发：curl请求失败（exit code $CURL_EXIT_CODE），20秒后重试..."
+              sleep 20
               continue
             fi
           
             echo "📝 JitPack响应（原始）：${RESPONSE:-"空响应"}"
           
-            # 成功判断（宽松匹配）
+            # 宽松的成功判断
             if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -qiE "Building|Queued|Success|Created|Found"; then
-              echo "✅ JitPack编译触发成功！响应：${RESPONSE}"
+              echo "✅ JitPack编译触发成功！"
               BUILD_SUCCESS=true
               break
             else
-              echo "⚠️ 第${i}次触发：响应无效/空，15秒后重试..."
-              sleep 15
+              echo "⚠️ 第${i}次触发：响应无效/空，20秒后重试..."
+              sleep 20
             fi
           done
           
@@ -265,7 +268,8 @@ jobs:
             echo "🔗 手动触发地址：https://jitpack.io/#${REPO_FULL_NAME}/${TAG_NAME}"
             echo "🔗 编译日志地址：${JITPACK_CHECK_URL}/build.log"
           fi
-          # 强制返回0，确保工作流不终止
+          
+          # 核心修复4：强制返回0，确保工作流不终止（移除多余的无效代码）
           exit 0
 
           # 打印JitPack编译状态查询地址，方便排查
