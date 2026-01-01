@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
 import android.view.WindowManager
-import com.yaduo.common.Utils
+import com.yaduo.common.util.Utils
 import com.yaduo.common.applogic.AppLogicUtil
 import com.yaduo.common.log.LogUtil
 

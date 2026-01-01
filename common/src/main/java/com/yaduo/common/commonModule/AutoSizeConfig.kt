@@ -2,8 +2,8 @@ package com.yaduo.common.commonModule
 
 import android.app.Activity
 import android.content.Context
-import android.content.pm.PackageManager
 import com.yaduo.common.log.LogUtil
+import com.yaduo.common.util.MetaDataUtils
 import me.jessyan.autosize.AutoSizeConfig
 import me.jessyan.autosize.onAdaptListener
 
@@ -56,38 +56,38 @@ object AutoSizeConfig : ICommonModule {
 
     override var isInitialized = false
 
+    override var isCanInitialized = false
+
     /**
      * 初始化 AndroidAutoSize 崩溃报告系统
      * 在这里设置了监听适配前和适配后，并打上日志
      * @param context 应用上下文（自动转换为 ApplicationContext）
      */
     override fun initialize(context: Context) {
-        if (isInitialized) return
+        if (isInitialized && !BuglyReport.isCanInitialized) return
 
         LogUtil.i(TAG, "AutoSizeConfig 主动初始化：启用屏幕适配")
         enableAutoSizeAdapt(context)
         isInitialized = true
     }
 
-    /**
-     * 自动检测Manifest中是否有适配配置
-     *
-     * 有则启用，无则禁用
-     */
-    fun autoCheckAndAdapt(context: Context) {
-        if (isInitialized) {
-            LogUtil.i(TAG, "已主动初始化适配，跳过自动检测")
-            return
-        }
+    override fun checkCanBeInitialized(context: Context): Boolean {
 
-        val hasAdaptConfig = checkManifestHasAdaptConfig(context)
+        val hasAdaptConfig = MetaDataUtils.checkManifestHasTargetMetaData(
+            context,
+            META_KEY_WIDTH,
+            META_KEY_HEIGHT
+        )
         if (hasAdaptConfig) {
             LogUtil.i(TAG, "检测到Manifest中有适配配置，自动启用屏幕适配")
             enableAutoSizeAdapt(context)
+            isCanInitialized = true
         } else {
             LogUtil.i(TAG, "未检测到Manifest适配配置，自动禁用屏幕适配")
             disableAutoSizeAdapt()
+            isCanInitialized = false
         }
+        return isCanInitialized
     }
 
     /**
@@ -98,8 +98,8 @@ object AutoSizeConfig : ICommonModule {
             isBaseOnWidth = true
             setExcludeFontScale(false)
             // 读取Manifest中的设计稿尺寸（可选，让适配更精准）
-            val designWidth = getMetaDataInt(context, META_KEY_WIDTH, 360)
-            val designHeight = getMetaDataInt(context, META_KEY_HEIGHT, 640)
+            val designWidth = MetaDataUtils.getMetaDataInt(context, META_KEY_WIDTH, 360)
+            val designHeight = MetaDataUtils.getMetaDataInt(context, META_KEY_HEIGHT, 640)
             LogUtil.i(TAG, "适配设计稿尺寸：宽 = $designWidth dp，高 = $designHeight dp")
 
             setOnAdaptListener(object : onAdaptListener {
@@ -127,42 +127,6 @@ object AutoSizeConfig : ICommonModule {
             setExcludeFontScale(true)
         }
         isInitialized = false
-    }
-
-    /**
-     * 检测Manifest中是否存在适配所需的meta-data配置
-     * @return true=存在（design_width + design_height都有），false=不存在
-     */
-    private fun checkManifestHasAdaptConfig(context: Context): Boolean {
-        return try {
-            val hasWidth = getMetaDataInt(context, META_KEY_WIDTH, -1) != -1
-            val hasHeight = getMetaDataInt(context, META_KEY_HEIGHT, -1) != -1
-            hasWidth && hasHeight
-        } catch (e: Exception) {
-            LogUtil.e(TAG, "检测Manifest适配配置失败", e)
-            false
-        }
-    }
-
-    /**
-     * 读取Manifest中application节点下的meta-data整数值
-     * @param key meta-data的name
-     * @param defaultValue 默认值
-     */
-    private fun getMetaDataInt(context: Context, key: String, defaultValue: Int): Int {
-        return try {
-            val appInfo = context.packageManager.getApplicationInfo(
-                context.packageName,
-                PackageManager.GET_META_DATA
-            )
-            appInfo.metaData?.getInt(key, defaultValue) ?: defaultValue
-        } catch (e: PackageManager.NameNotFoundException) {
-            LogUtil.e(TAG, "读取Manifest meta-data失败：包名不存在", e)
-            defaultValue
-        } catch (e: Exception) {
-            LogUtil.e(TAG, "读取Manifest meta-data失败：key = $key", e)
-            defaultValue
-        }
     }
 
 }

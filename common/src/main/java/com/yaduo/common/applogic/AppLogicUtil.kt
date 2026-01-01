@@ -19,20 +19,28 @@ object AppLogicUtil {
     /** 全局上下文实例 **/
     private lateinit var sApp: Application
 
-    var appIdForBuglyReport: String = ""
-
     /** 保存的[ICommonModule]列表 **/
     private val commonModuleList = mutableListOf<ICommonModule>()
 
     /**
-     * 初始化方法，传入Application的实例
+     * 初始化方法
+     * 1. 传入Application的实例
+     * 2. 检查所有的'ICommonModule'是否可以初始化
+     * 3. 按需初始化
      *
-     * 自动检测 Manifest 适配配置并按需启用 / 禁用
      * @param app 在Application创建时传入上下文
+     * @param needCheck 是否需要检查所有'ICommonModule'是否可以初始化，默认为false
+     * @param needInitialize 是否需要初始化所有'ICommonModule'，默认为false
      */
-    fun initialize(app: Application) {
+    fun initialize(app: Application, needCheck: Boolean = true, needInitialize: Boolean = false) {
         sApp = app
-        AutoSizeConfig.autoCheckAndAdapt(app)
+        if (needCheck) {
+            registerAllCommonModule()
+            commonModuleList.forEach { it.checkCanBeInitialized() }
+        }
+        if (needInitialize) {
+            initializeCommonModule()
+        }
     }
 
     /**
@@ -49,6 +57,16 @@ object AppLogicUtil {
     }
 
     /**
+     * 注册所有模块方法
+     */
+    fun registerAllCommonModule() {
+        registerCommonModule(AutoSizeConfig)
+        registerCommonModule(BuglyReport)
+        registerCommonModule(Chucker)
+        registerCommonModule(MMKV)
+    }
+
+    /**
      * 初始化全部注册模块
      */
     fun initializeCommonModule() = commonModuleList.forEach { it.initialize() }
@@ -57,10 +75,7 @@ object AppLogicUtil {
      * 注册所有模块并初始化
      */
     fun initializeAllCommonModule() {
-        registerCommonModule(AutoSizeConfig)
-        registerCommonModule(BuglyReport)
-        registerCommonModule(Chucker)
-        registerCommonModule(MMKV)
+        registerAllCommonModule()
         initializeCommonModule()
     }
 

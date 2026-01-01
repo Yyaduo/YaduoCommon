@@ -27,6 +27,8 @@ object Chucker : ICommonModule {
 
     override var isInitialized = false
 
+    override var isCanInitialized = true
+
     /** 敏感头列表 **/
     private val SENSITIVE_HEADERS = listOf("Authorization", "Cookie")
 
@@ -53,11 +55,13 @@ object Chucker : ICommonModule {
     }
 
     override fun initialize(context: Context) {
-        if (isInitialized) return
+        if (isInitialized && !BuglyReport.isCanInitialized) return
 
         _chuckerInterceptor = createChuckerInterceptor(context)
         isInitialized = true
     }
+
+    override fun checkCanBeInitialized(context: Context) = isCanInitialized
 
     /**
      * 创建并配置 Chucker 网络监控拦截器

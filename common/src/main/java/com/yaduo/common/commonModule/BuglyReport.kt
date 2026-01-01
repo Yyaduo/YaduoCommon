@@ -7,13 +7,14 @@ import com.tencent.bugly.crashreport.CrashReport.UserStrategy
 import com.yaduo.common.applogic.AppLogicUtil
 import com.yaduo.common.device.DeviceInfo
 import com.yaduo.common.log.LogUtil
+import com.yaduo.common.util.MetaDataUtils
 
 /**
  * ### Bugly 崩溃报告系统集成模块
  *
  * 封装腾讯 Bugly SDK 的初始化流程，提供应用崩溃监控和分析功能。
  *
- * 主要特性：
+ * #### 主要特性：
  * - 实时崩溃监控（支持Native层崩溃）
  * - ANR（Application Not Responding）检测
  * - 自定义错误上报
@@ -30,10 +31,19 @@ import com.yaduo.common.log.LogUtil
  *    - 启动延迟：3000ms（避免影响启动性能）
  *    - 调试模式：BuildConfig.DEBUG（自动区分环境）
  *
+ * #### 集成说明
+ * ```xml
+ * <!-- 在 AndroidManifest.xml 中添加 -->
+ * <application>
+ *     <meta-data
+ *         android:name="BUGLY_APPID"
+ *         android:value="你的Bugly AppID"/>
+ * </application>
+ * ```
  *
  * #### 注意事项：
  * - 必须在主线程调用初始化
- * - 初始化前应在 AppLogicUtil 中设置 appIdForBuglyReport，否则初始化无效
+ * - 初始化逻辑依赖 Manifest 中的 BUGLY_APPID 配置，无配置则不初始化
  * - 需在 Application onCreate 中尽早初始化
  * - 发布版本需关闭调试模式（已自动处理）
  * - 用户ID应在用户登录后更新
@@ -46,7 +56,12 @@ object BuglyReport : ICommonModule {
 
     private const val TAG = "BuglyReport"
 
+    /** Manifest配置Bugly的Appid **/
+    private const val META_KEY_BUGLY_APPID = "BUGLY_APPID"
+
     override var isInitialized = false
+
+    override var isCanInitialized = false
 
     /**
      * 初始化 Bugly 崩溃报告系统
@@ -60,13 +75,18 @@ object BuglyReport : ICommonModule {
      * @param context 应用上下文（自动转换为 ApplicationContext）
      */
     override fun initialize(context: Context) {
-        if (isInitialized) return
+        if (isInitialized && !isCanInitialized) return
 
-        val appId = AppLogicUtil.appIdForBuglyReport.run {
-            this.ifEmpty {
-                LogUtil.w(TAG, "appIdForBuglyReport is empty, BuglyReport initialize failed")
-                return
-            }
+        val buglyAppId = MetaDataUtils.getMetaDataString(context, META_KEY_BUGLY_APPID)
+
+        LogUtil.i(TAG, "BuglyReport initialize, appid: $buglyAppId")
+
+        if (buglyAppId == "-1") {
+            LogUtil.w(
+                TAG,
+                "BuglyReport initialize, appid is error, BuglyReport initialize failed"
+            )
+            return
         }
 
         // 用户策略
@@ -80,7 +100,7 @@ object BuglyReport : ICommonModule {
         // 初始化
         CrashReport.initCrashReport(
             context,
-            appId,
+            buglyAppId,
             false,
             userStrategy
         )
@@ -89,6 +109,18 @@ object BuglyReport : ICommonModule {
         CrashReport.setUserId(DeviceInfo.getUid())
 
         isInitialized = true
+
+    }
+
+    override fun checkCanBeInitialized(context: Context): Boolean {
+        if (MetaDataUtils.checkManifestHasTargetMetaData(context, META_KEY_BUGLY_APPID)) {
+            initialize(context)
+            isCanInitialized = true
+        } else {
+            LogUtil.w(TAG, "appIdForBuglyReport is empty, BuglyReport initialize failed")
+            isCanInitialized = false
+        }
+        return isCanInitialized
     }
 
 }
