@@ -340,7 +340,7 @@ jobs:
           echo "📝 执行发布任务：$PUBLISH_TASK"
           PUBLISH_MAVEN_USER="${{ github.actor }}" \
           PUBLISH_MAVEN_KEY="${{ secrets.GITHUB_TOKEN }}" \
-          ./gradlew $PUBLISH_TASK --build-cache --info
+          ./gradlew -PpublishToGitHubPackages=true $PUBLISH_TASK --build-cache --info
         env:
           # 核心认证环境变量
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
