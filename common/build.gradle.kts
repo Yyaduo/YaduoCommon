@@ -60,6 +60,30 @@ afterEvaluate {
                 groupId = "com.github.Yyaduo"
                 artifactId = "YaduoCommon"
                 version = project.property("VERSION_NAME").toString()
+
+                pom {
+                    name.set("YaduoCommon")
+                    description.set("Android Common Library")
+                    url.set("https://github.com/Yyaduo/YaduoCommon")
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://github.com/Yyaduo/YaduoCommon/blob/main/LICENSE")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("Yyaduo")
+                            name.set("YaDuo")
+                            email.set("2499133184@qq.com")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:git://github.com/Yyaduo/YaduoCommon.git")
+                        developerConnection.set("scm:git:ssh://github.com/Yyaduo/YaduoCommon.git")
+                        url.set("https://github.com/Yyaduo/YaduoCommon")
+                    }
+                }
             }
         }
 

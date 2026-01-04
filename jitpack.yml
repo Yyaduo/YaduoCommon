@@ -1,8 +1,17 @@
 jdk:
   - openjdk17
+before_install:
+  # 安装 Android SDK 构建工具
+  - yes | sdkmanager "build-tools;35.0.0" "platforms;android-34"
 install:
-  # 跳过认证校验，仅执行编译AAR的命令
-  - ./gradlew clean :common:assembleRelease -PskipPublishCheck=true --no-daemon
-  # 将编译好的AAR复制到JitPack默认的输出目录，方便JitPack识别
+  # 1. 编译 AAR + 生成 POM 文件（关键：执行 publishToMavenLocal 生成 POM）
+  - ./gradlew clean :common:assembleRelease :common:publishToMavenLocal -PskipPublishCheck=true --no-daemon
+  # 2. 创建 build/libs 目录（确保存在）
   - mkdir -p build/libs
-  - cp common/build/outputs/aar/common-release.aar build/libs/common-${VERSION}.aar
+  # 3. 复制 AAR 到 JitPack 识别路径（用固定版本号 + 兼容命名）
+  - VERSION=$(grep 'VERSION_NAME' gradle.properties | cut -d'=' -f2 | tr -d ' ')
+  - cp common/build/outputs/aar/common-release.aar build/libs/YaduoCommon-$VERSION.aar
+  # 4. 复制 POM 文件到 build/libs（和 AAR 同名，JitPack 必需）
+  - cp ~/.m2/repository/com/github/Yyaduo/YaduoCommon/$VERSION/YaduoCommon-$VERSION.pom build/libs/
+  # 5. 验证产物（便于排查）
+  - ls -l build/libs/
