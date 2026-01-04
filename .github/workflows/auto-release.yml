@@ -335,8 +335,19 @@ jobs:
           REPO_NAME=${REPO_NAME:-"YaduoCommon"}
           echo "✅ 最终仓库名：$REPO_NAME"
 
+          # 关键：先执行 publishToMavenLocal 生成 POM 文件到本地 Maven 仓库
+          echo "📝 生成 POM 文件到本地 Maven 仓库..."
+          ./gradlew -PpublishToGitHubPackages=true :common:publishToMavenLocal --build-cache --info
+      
+          # 打印 POM 文件（此时已生成，路径正确）
           echo "📝 打印 POM 文件内容..."
-          cat ~/.m2/repository/com/github/Yyaduo/YaduoCommon/${{ needs.auto-release.outputs.VERSION_NAME }}/YaduoCommon-${{ needs.auto-release.outputs.VERSION_NAME }}.pom
+          POM_PATH="~/.m2/repository/com/github/Yyaduo/YaduoCommon/${{ needs.auto-release.outputs.VERSION_NAME }}/YaduoCommon-${{ needs.auto-release.outputs.VERSION_NAME }}.pom"
+          # 兼容路径：如果本地仓库没有，读取构建临时目录的 POM
+          if [ ! -f "$POM_PATH" ]; then
+          POM_PATH="${{ github.workspace }}/common/build/publications/release/pom-default.xml"
+          echo "⚠️ 本地Maven仓库无POM，读取构建临时目录：$POM_PATH"
+          fi
+          cat "$POM_PATH" || echo "⚠️ POM 文件读取失败，但继续发布流程..."
   
           # 执行发布任务（自动依赖assembleRelease，无需单独构建）
           PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
