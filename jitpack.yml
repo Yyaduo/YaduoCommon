@@ -1,7 +1,8 @@
 jdk:
-  - openjdk17  # 明确指定 Java 17（Android Gradle 插件 7.0+ 要求）
-before_install:
-  - sdk install java 17.0.14-amzn  # 安装指定 Java 版本
-  - sdk use java 17.0.14-amzn
+  - openjdk17
 install:
-  - ./gradlew clean :common:assembleRelease :common:publishToMavenLocal  # 明确构建当前库的命令
+  # 跳过认证校验，仅执行编译AAR的命令
+  - ./gradlew clean :common:assembleRelease -PskipPublishCheck=true --no-daemon
+  # 将编译好的AAR复制到JitPack默认的输出目录，方便JitPack识别
+  - mkdir -p build/libs
+  - cp common/build/outputs/aar/common-release.aar build/libs/common-${VERSION}.aar

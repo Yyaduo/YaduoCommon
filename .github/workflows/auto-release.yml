@@ -44,16 +44,6 @@ jobs:
           # 配置git用户（提前配置，避免后续重复）
           persist-credentials: true
 
-      # ========== 前提1：配置Android SDK ==========
-      - name: step_one_ext -> 配置Android SDK
-        uses: android-actions/setup-android@v3
-
-      # ========== 前提2：创建合法的local.properties ==========
-      - name: step_one_ext2 -> 创建Android适配的local.properties
-        run: |
-          echo "sdk.dir=${ANDROID_HOME}" > ${{ github.workspace }}/local.properties
-          echo "✅ 创建local.properties，SDK路径：${ANDROID_HOME}"
-
       # 步骤2：读取版本号
       - name: step_two -> 读取版本号
         id: get_version
@@ -300,14 +290,25 @@ jobs:
       - name: step_two -> 配置Android SDK
         uses: android-actions/setup-android@v3
 
-      # 步骤3：创建local.properties
-      - name: step_three -> 创建Android SDK配置文件
+      # 步骤3：缓存Gradle依赖
+      - name: step_three -> 缓存Gradle依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # 步骤4：创建local.properties
+      - name: step_four -> 创建Android SDK配置文件
         run: |
           echo "sdk.dir=${ANDROID_HOME}" > ${{ github.workspace }}/local.properties
           echo "✅ 已创建local.properties，SDK路径：${ANDROID_HOME}"
 
-      # 步骤4：发布aar到GitHub Packages
-      - name: step_four -> 发布aar到GitHub Packages
+      # 步骤5：发布aar到GitHub Packages
+      - name: step_five -> 发布aar到GitHub Packages
         run: |
           set -e  # 错误立即终止，便于排查
           echo "===== 调试关键环境变量 ====="
