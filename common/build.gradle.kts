@@ -69,14 +69,21 @@ afterEvaluate {
                     var username: String? = null
                     var password: String? = null
 
-                    // 优先读取本地local.properties（本地开发用）
-                    val localPropsFile = project.rootProject.file("local.properties")
-                    if (localPropsFile.exists()) {
-                        val localProps = Properties()
-                        localProps.load(FileInputStream(localPropsFile))
-                        username = localProps.getProperty("PUBLISH_MAVEN_USER")
-                        password = localProps.getProperty("PUBLISH_MAVEN_KEY")
-                        println("📌 从local.properties读取认证信息：用户名 = $username，密钥长度 = ${password?.length ?: 0}")
+                    // 优先读取环境变量
+                    username = System.getenv("PUBLISH_MAVEN_USER")
+                    password = System.getenv("PUBLISH_MAVEN_KEY")
+                    println("📌 从环境变量读取认证信息：用户名 = $username，密钥长度 = ${password?.length ?: 0}")
+
+                    // 读取本地local.properties（本地开发用）
+                    if (username.isNullOrBlank() || password.isNullOrBlank()) {
+                        val localPropsFile = project.rootProject.file("local.properties")
+                        if (localPropsFile.exists()) {
+                            val localProps = Properties()
+                            localProps.load(FileInputStream(localPropsFile))
+                            username = localProps.getProperty("PUBLISH_MAVEN_USER")
+                            password = localProps.getProperty("PUBLISH_MAVEN_KEY")
+                            println("📌 从local.properties读取认证信息：用户名 = $username，密钥长度 = ${password?.length ?: 0}")
+                        }
                     }
 
                     // 兜底读取Project属性（GitHub Actions用，通过-P参数传递）
@@ -88,14 +95,18 @@ afterEvaluate {
 
                     // 严格空值校验 + 明确错误提示
                     if (username.isNullOrBlank()) {
-                        throw GradleException("❌ 发布认证用户名为空！\n" +
-                                "本地开发：请在local.properties中配置PUBLISH_MAVEN_USER\n" +
-                                "CI/CD：请通过-Ppublish.user传递GitHub用户名")
+                        throw GradleException(
+                            "❌ 发布认证用户名为空！\n" +
+                                    "本地开发：请在local.properties中配置PUBLISH_MAVEN_USER\n" +
+                                    "CI/CD：请通过-Ppublish.user传递GitHub用户名"
+                        )
                     }
                     if (password.isNullOrBlank()) {
-                        throw GradleException("❌ 发布认证密钥为空！\n" +
-                                "本地开发：请在local.properties中配置PUBLISH_MAVEN_KEY\n" +
-                                "CI/CD：请通过-Ppublish.key传递GITHUB_TOKEN")
+                        throw GradleException(
+                            "❌ 发布认证密钥为空！\n" +
+                                    "本地开发：请在local.properties中配置PUBLISH_MAVEN_KEY\n" +
+                                    "CI/CD：请通过-Ppublish.key传递GITHUB_TOKEN"
+                        )
                     }
 
                     // 4. 赋值认证信息

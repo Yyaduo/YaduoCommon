@@ -29,6 +29,12 @@ jobs:
     runs-on: ubuntu-latest  # 编译环境
     # 失败时立即终止，避免无效步骤
     continue-on-error: false
+    # 输出变量给后续发布job
+    outputs:
+      TAG_EXISTS: ${{ steps.check_tag.outputs.TAG_EXISTS }}
+      TAG_NAME: ${{ steps.get_version.outputs.TAG_NAME }}
+      VERSION_NAME: ${{ steps.get_version.outputs.VERSION_NAME }}
+      RELEASE_TITLE: ${{ steps.get_version.outputs.RELEASE_TITLE }}
     steps:
       # 步骤1：拉取仓库代码
       - name: step_one -> 拉取代码
@@ -183,48 +189,51 @@ jobs:
               [versions]
               yaduocommon = "${{ steps.get_version.outputs.TAG_NAME }}"
               ```
-      - name: step_six -> 触发 JitPack 编译
-        # 仅当 Tag 不存在（创建了新 Release）且前序步骤成功时执行
-        if: steps.check_tag.outputs.TAG_EXISTS == 'false' && success()
+
+  # 触发JitPack编译
+  trigger-jitpack-build:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    # 仅主auto-release成功且Tag不存在时执行
+    needs: auto-release
+    if: needs.auto-release.outputs.TAG_EXISTS == 'false' && needs.auto-release.result == 'success'
+    steps:
+      - name: step_one -> 拉取代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: step_two -> 触发JitPack编译
         run: |
-          # 关闭严格模式，避免单个命令失败终止流程
           set +e
-          # 构造 JitPack 相关地址
           REPO_FULL_NAME="${{ github.repository }}"
-          TAG_NAME="${{ steps.get_version.outputs.TAG_NAME }}"
+          TAG_NAME="${{ needs.auto-release.outputs.TAG_NAME }}"
           JITPACK_API_URL="https://jitpack.io/api/builds/${REPO_FULL_NAME}/${TAG_NAME}"
           JITPACK_CHECK_URL="https://jitpack.io/com/github/${{ github.repository_owner }}/${{ github.event.repository.name }}/${TAG_NAME}"
-          # JitPack仓库主页（用于强制刷新仓库数据）
           JITPACK_REPO_URL="https://jitpack.io/#${REPO_FULL_NAME}"
-
-          echo "===== 触发JitPack编译（最终修复版） ====="
+  
+          echo "===== 触发JitPack编译 ====="
           echo "仓库地址：${REPO_FULL_NAME}"
           echo "Tag版本：${TAG_NAME}"
           echo "JitPack API：${JITPACK_API_URL}"
-          echo "=========================================="
-
-          # 大幅延长同步时间（90秒），确保JitPack拉取到GitHub的Tag/Release
+          echo "============================"
+  
           echo "⏳ 等待90秒，让JitPack同步GitHub的Tag和Release..."
           sleep 90
-
-          # 先访问JitPack仓库主页，强制刷新仓库数据
+  
           echo "🔄 强制刷新JitPack仓库数据..."
           curl -s --connect-timeout 20 --max-time 40 -k "$JITPACK_REPO_URL" > /dev/null
-
-          # 验证JitPack是否识别Tag（重试2次即可，避免过度等待）
+  
           TAG_FOUND=false
           for i in {1..2}; do
             echo "🔍 第${i}次检查JitPack是否识别Tag..."
             CHECK_RESPONSE=$(curl -s --connect-timeout 20 --max-time 60 -k "$JITPACK_CHECK_URL")
             CURL_EXIT_CODE=$?
-          
-            # 处理curl错误（超时/连接失败）
             if [ $CURL_EXIT_CODE -ne 0 ]; then
-              echo "⚠️ 第${i}次检查：curl请求失败（exit code $CURL_EXIT_CODE），20秒后重试..."
+              echo "⚠️ 第${i}次检查：curl请求失败，20秒后重试..."
               sleep 20
               continue
             fi
-            # 检查Tag是否存在
             if echo "$CHECK_RESPONSE" | grep -qi "not found"; then
               echo "⚠️ 第${i}次检查：JitPack未识别到Tag，20秒后重试..."
               sleep 20
@@ -235,12 +244,10 @@ jobs:
             fi
           done
           
-          # 兜底策略：跳过检查直接触发编译
           if [ "$TAG_FOUND" = false ]; then
             echo "⚠️ JitPack Tag检查失败，直接尝试触发编译..."
           fi
           
-          # 触发编译（重试3次，间隔20秒，适配JitPack慢响应）
           BUILD_SUCCESS=false
           for i in {1..3}; do
             echo "📡 第${i}次尝试触发JitPack编译..."
@@ -252,104 +259,92 @@ jobs:
               -H "Accept: application/json" \
               "$JITPACK_API_URL")
             CURL_EXIT_CODE=$?
-          
-            # 处理curl错误
             if [ $CURL_EXIT_CODE -ne 0 ]; then
-              echo "⚠️ 第${i}次触发：curl请求失败（exit code $CURL_EXIT_CODE），20秒后重试..."
+              echo "⚠️ 第${i}次触发：curl请求失败，20秒后重试..."
               sleep 20
               continue
             fi
-          
-            echo "📝 JitPack响应（原始）：${RESPONSE:-"空响应"}"
-          
-            # 宽松的成功判断
+            echo "📝 JitPack响应：${RESPONSE:-"空响应"}"
             if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -qiE "Building|Queued|Success|Created|Found"; then
               echo "✅ JitPack编译触发成功！"
               BUILD_SUCCESS=true
               break
             else
-              echo "⚠️ 第${i}次触发：响应无效/空，20秒后重试..."
+              echo "⚠️ 第${i}次触发：响应无效，20秒后重试..."
               sleep 20
             fi
           done
           
-          # 最终结果提示
           if [ "$BUILD_SUCCESS" = false ]; then
             echo "⚠️ JitPack编译触发最终失败（非致命错误）！"
             echo "🔗 手动触发地址：https://jitpack.io/#${REPO_FULL_NAME}/${TAG_NAME}"
             echo "🔗 编译日志地址：${JITPACK_CHECK_URL}/build.log"
           fi
-          
-          # 强制返回0，确保工作流不终止
           exit 0
 
-      - name: step_seven -> 发布aar到GitHub Packages
-        if: steps.check_tag.outputs.TAG_EXISTS == 'false' && success()
+  # 发布aar到GitHub Packages
+  publish-to-github-packages:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    # 仅主auto-release成功且Tag不存在时执行
+    needs: auto-release
+    if: needs.auto-release.outputs.TAG_EXISTS == 'false' && needs.auto-release.result == 'success'
+    steps:
+      # 步骤1：拉取代码
+      - name: step_one -> 拉取仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 步骤2：配置Android SDK
+      - name: step_two -> 配置Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 步骤3：创建local.properties
+      - name: step_three -> 创建Android SDK配置文件
         run: |
-          set +e
+          echo "sdk.dir=${ANDROID_HOME}" > ${{ github.workspace }}/local.properties
+          echo "✅ 已创建local.properties，SDK路径：${ANDROID_HOME}"
 
-          echo "===== 调试环境变量 ====="
+      # 步骤4：发布aar到GitHub Packages
+      - name: step_four -> 发布aar到GitHub Packages
+        run: |
+          set -e  # 错误立即终止，便于排查
+          echo "===== 调试关键环境变量 ====="
           echo "GITHUB_ACTOR: ${{ github.actor }}"
-          echo "PUBLISH_MAVEN_USER（预设）: $PUBLISH_MAVEN_USER"
-          echo "PUBLISH_MAVEN_KEY（长度）: ${#PUBLISH_MAVEN_KEY}"
-
-          # 构建aar（aar在common/build/outputs/aar/目录下）
-          ./gradlew :common:assembleRelease --info
-          
-          # 配置Maven发布到GitHub Packages
+          echo "PUBLISH_MAVEN_USER: $PUBLISH_MAVEN_USER"
+          echo "PUBLISH_MAVEN_KEY长度: ${#PUBLISH_MAVEN_KEY}"
+          echo "关联Tag: ${{ needs.auto-release.outputs.TAG_NAME }}"
+          echo "版本号: ${{ needs.auto-release.outputs.VERSION_NAME }}"
+  
+          # 配置Maven认证（兜底保障）
           mkdir -p ~/.m2
           echo "<settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > ~/.m2/settings.xml
-          
-          echo "===== 开始提取仓库名 ====="
+  
+          # 提取仓库名（保持原逻辑，确保发布任务名正确）
           REPO_NAME=""
-          
-          # 方案1：从Gradle属性提取（优先）
-          # 先执行properties命令，保存输出和执行状态
           PROPERTIES_OUTPUT=$(./gradlew :common:properties --no-daemon -q -Porg.gradle.logging.level=ERROR 2>/tmp/gradle_error.log)
           GRADLE_EXIT_CODE=$?
-          
           if [ $GRADLE_EXIT_CODE -eq 0 ] && [ -n "$PROPERTIES_OUTPUT" ]; then
-            # 用更宽松的正则匹配（适配Gradle属性输出格式）
-            REPO_NAME=$(echo "$PROPERTIES_OUTPUT" | \
-              awk '/publishing\.repositories\.maven\.name/ {
-                # 匹配 "name: YaduoCommon" 或 "name = YaduoCommon" 等格式
-                gsub(/.*name[=:]\s*/, ""); 
-                gsub(/\r|\n/, ""); 
-                print $0
-              }')
-            echo "📌 从Gradle属性提取到仓库名：${REPO_NAME:-"空"}"
-          else
-            echo "⚠️ Gradle属性命令执行失败/无输出，错误日志："
-            cat /tmp/gradle_error.log
+            REPO_NAME=$(echo "$PROPERTIES_OUTPUT" | awk '/publishing\.repositories\.maven\.name/ { gsub(/.*name[=:]\s*/, ""); gsub(/\r|\n/, ""); print $0 }')
           fi
-          
-          # 方案2：兜底 - 直接从build.gradle.kts中读取（硬编码的name）
           if [ -z "$REPO_NAME" ]; then
-            echo "🔧 尝试从common/build.gradle.kts读取仓库名..."
             REPO_NAME=$(grep 'name = "YaduoCommon"' common/build.gradle.kts | awk -F'"' '{print $2}')
-            echo "📌 从build.gradle.kts提取到仓库名：${REPO_NAME:-"空"}"
           fi
-          
-          # 最终兜底：默认值
-          if [ -z "$REPO_NAME" ]; then
-            REPO_NAME="YaduoCommon"
-            echo "⚠️ 所有提取方式失败，使用默认值：$REPO_NAME"
-          else
-            echo "✅ 最终仓库名：$REPO_NAME"
-          fi
-          
-          # ========== 显式传递环境变量给Gradle发布命令 ==========
+          REPO_NAME=${REPO_NAME:-"YaduoCommon"}
+          echo "✅ 最终仓库名：$REPO_NAME"
+  
+          # 执行发布任务（自动依赖assembleRelease，无需单独构建）
           PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
           echo "📝 执行发布任务：$PUBLISH_TASK"
-          # 在执行gradlew时，直接传递环境变量（优先级最高）
           PUBLISH_MAVEN_USER="${{ github.actor }}" \
           PUBLISH_MAVEN_KEY="${{ secrets.GITHUB_TOKEN }}" \
-          ./gradlew $PUBLISH_TASK --info
+          ./gradlew $PUBLISH_TASK --build-cache --info
         env:
-          # 全局环境变量（双重保障）
+          # 核心认证环境变量
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISH_MAVEN_USER: ${{ github.actor }}
           PUBLISH_MAVEN_KEY: ${{ secrets.GITHUB_TOKEN }}
-          # Android SDK 环境变量（确保Gradle能找到）
+          # Android SDK环境变量
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
