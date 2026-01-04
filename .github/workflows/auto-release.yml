@@ -22,6 +22,7 @@ on:
 # 配置工作流权限
 permissions:
   contents: write  # 允许读写仓库内容（创建Tag/Release）
+  packages: write   # 发布GitHub Packages需要的权限
 
 jobs:
   auto-release:
@@ -36,6 +37,16 @@ jobs:
           fetch-depth: 0  # 拉取所有历史，方便创建Tag
           # 配置git用户（提前配置，避免后续重复）
           persist-credentials: true
+
+      # ========== 前提1：配置Android SDK ==========
+      - name: step_one_ext -> 配置Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ========== 前提2：创建合法的local.properties ==========
+      - name: step_one_ext2 -> 创建Android适配的local.properties
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > ${{ github.workspace }}/local.properties
+          echo "✅ 创建local.properties，SDK路径：${ANDROID_HOME}"
 
       # 步骤2：读取版本号
       - name: step_two -> 读取版本号
@@ -282,28 +293,55 @@ jobs:
         run: |
           set +e
           # 构建aar（aar在common/build/outputs/aar/目录下）
-          ./gradlew :common:assembleRelease
+          ./gradlew :common:assembleRelease --info
           
           # 配置Maven发布到GitHub Packages
           mkdir -p ~/.m2
           echo "<settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ github.token }}</password></server></servers></settings>" > ~/.m2/settings.xml
           
-          # 动态提取Gradle中配置的发布仓库名（核心步骤）
-          # 执行gradle脚本，提取publishing.repositories里maven仓库的name属性
-          REPO_NAME=$(./gradlew :common:properties --no-daemon -q -Porg.gradle.logging.level=ERROR | \
-          awk '/publishing.repositories.maven.name/ {gsub(/publishing.repositories.maven.name: /, ""); print $0}')
+          echo "===== 开始提取仓库名 ====="
+          REPO_NAME=""
           
-          # 兜底：如果提取失败，默认使用YaduoCommon
-          if [ -z "$REPO_NAME" ]; then
-          REPO_NAME="YaduoCommon"
-          echo "⚠️ 提取仓库名失败，使用默认值：$REPO_NAME"
+          # 方案1：从Gradle属性提取（优先）
+          # 先执行properties命令，保存输出和执行状态
+          PROPERTIES_OUTPUT=$(./gradlew :common:properties --no-daemon -q -Porg.gradle.logging.level=ERROR 2>/tmp/gradle_error.log)
+          GRADLE_EXIT_CODE=$?
+          
+          if [ $GRADLE_EXIT_CODE -eq 0 ] && [ -n "$PROPERTIES_OUTPUT" ]; then
+            # 用更宽松的正则匹配（适配Gradle属性输出格式）
+            REPO_NAME=$(echo "$PROPERTIES_OUTPUT" | \
+              awk '/publishing\.repositories\.maven\.name/ {
+                # 匹配 "name: YaduoCommon" 或 "name = YaduoCommon" 等格式
+                gsub(/.*name[=:]\s*/, ""); 
+                gsub(/\r|\n/, ""); 
+                print $0
+              }')
+            echo "📌 从Gradle属性提取到仓库名：${REPO_NAME:-"空"}"
           else
-          echo "✅ 提取到发布仓库名：$REPO_NAME"
+            echo "⚠️ Gradle属性命令执行失败/无输出，错误日志："
+            cat /tmp/gradle_error.log
           fi
           
-          # 4. 拼接发布任务名并执行
+          # 方案2：兜底 - 直接从build.gradle.kts中读取（硬编码的name）
+          if [ -z "$REPO_NAME" ]; then
+            echo "🔧 尝试从common/build.gradle.kts读取仓库名..."
+            REPO_NAME=$(grep 'name = "YaduoCommon"' common/build.gradle.kts | awk -F'"' '{print $2}')
+            echo "📌 从build.gradle.kts提取到仓库名：${REPO_NAME:-"空"}"
+          fi
+          
+          # 最终兜底：默认值
+          if [ -z "$REPO_NAME" ]; then
+            REPO_NAME="YaduoCommon"
+            echo "⚠️ 所有提取方式失败，使用默认值：$REPO_NAME"
+          else
+            echo "✅ 最终仓库名：$REPO_NAME"
+          fi
+          
+          # 执行发布任务
           PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
           echo "📝 执行发布任务：$PUBLISH_TASK"
           ./gradlew $PUBLISH_TASK
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISH_MAVEN_USER: ${{ github.actor }}
+          PUBLISH_MAVEN_KEY: ${{ secrets.GITHUB_TOKEN }}
