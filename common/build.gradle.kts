@@ -58,7 +58,7 @@ afterEvaluate {
                 from(components["release"])
 
                 groupId = "com.github.Yyaduo"
-                artifactId = "common"
+                artifactId = "YaduoCommon"
                 version = project.property("VERSION_NAME").toString()
             }
         }
