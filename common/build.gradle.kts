@@ -69,6 +69,7 @@ afterEvaluate {
                         license {
                             name.set("MIT License")
                             url.set("https://github.com/Yyaduo/YaduoCommon/blob/main/LICENSE")
+                            distribution.set("repo")
                         }
                     }
                     developers {

@@ -334,6 +334,9 @@ jobs:
           fi
           REPO_NAME=${REPO_NAME:-"YaduoCommon"}
           echo "✅ 最终仓库名：$REPO_NAME"
+
+          echo "📝 打印 POM 文件内容..."
+          cat ~/.m2/repository/com/github/Yyaduo/YaduoCommon/${{ needs.auto-release.outputs.VERSION_NAME }}/YaduoCommon-${{ needs.auto-release.outputs.VERSION_NAME }}.pom
   
           # 执行发布任务（自动依赖assembleRelease，无需单独构建）
           PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
