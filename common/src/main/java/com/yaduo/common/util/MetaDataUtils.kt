@@ -37,9 +37,8 @@ object MetaDataUtils {
 
         return try {
             keys.forEach { key ->
-                // 读取当前key的int值，默认值为-1
-                val metaValue = getMetaDataInt(context, key, -1)
-                if (metaValue == -1) {
+                val metaValue = getMetaDataString(context, key, "-1")
+                if (metaValue == "-1") {
                     LogUtil.d(TAG, "Manifest中未检测到有效配置：key = $key，value = $metaValue")
                     return false
                 }
