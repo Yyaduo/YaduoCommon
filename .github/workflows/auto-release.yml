@@ -276,3 +276,34 @@ jobs:
           JITPACK_STATUS_URL="https://jitpack.io/com/github/${{ github.repository_owner }}/${{ github.event.repository.name }}/${TAG_NAME}"
           echo "📌 JitPack编译状态查询：${JITPACK_STATUS_URL}"
           echo "📌 JitPack编译日志查询：${JITPACK_STATUS_URL}/build.log"
+
+      - name: step_seven -> 发布aar到GitHub Packages
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false' && success()
+        run: |
+          set +e
+          # 构建aar（aar在common/build/outputs/aar/目录下）
+          ./gradlew :common:assembleRelease
+          
+          # 配置Maven发布到GitHub Packages
+          mkdir -p ~/.m2
+          echo "<settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ github.token }}</password></server></servers></settings>" > ~/.m2/settings.xml
+          
+          # 动态提取Gradle中配置的发布仓库名（核心步骤）
+          # 执行gradle脚本，提取publishing.repositories里maven仓库的name属性
+          REPO_NAME=$(./gradlew :common:properties --no-daemon -q -Porg.gradle.logging.level=ERROR | \
+          awk '/publishing.repositories.maven.name/ {gsub(/publishing.repositories.maven.name: /, ""); print $0}')
+          
+          # 兜底：如果提取失败，默认使用YaduoCommon
+          if [ -z "$REPO_NAME" ]; then
+          REPO_NAME="YaduoCommon"
+          echo "⚠️ 提取仓库名失败，使用默认值：$REPO_NAME"
+          else
+          echo "✅ 提取到发布仓库名：$REPO_NAME"
+          fi
+          
+          # 4. 拼接发布任务名并执行
+          PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
+          echo "📝 执行发布任务：$PUBLISH_TASK"
+          ./gradlew $PUBLISH_TASK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

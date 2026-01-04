@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.library)
@@ -54,6 +56,21 @@ afterEvaluate {
                 groupId = "com.github.Yyaduo"
                 artifactId = "common"
                 version = project.property("VERSION_NAME").toString()
+            }
+        }
+
+        repositories {
+            maven {
+                name = "YaduoCommon"
+                url = uri("https://maven.pkg.github.com/Yyaduo/YaduoCommon")
+
+                credentials {
+                    val localProps = Properties()
+                    val localPropsFile = project.rootProject.file("local.properties")
+                    localProps.load(FileInputStream(localPropsFile))
+                    username = localProps.getProperty("PUBLISH_MAVEN_USER")
+                    password = localProps.getProperty("PUBLISH_MAVEN_KEY")
+                }
             }
         }
     }
