@@ -179,7 +179,7 @@ jobs:
               ```toml
               [libraries]
               yaduo-common = { module = "com.github.Yyaduo:YaduoCommon", version.ref = "yaduocommon" }
-  
+            
               [versions]
               yaduocommon = "${{ steps.get_version.outputs.TAG_NAME }}"
               ```
@@ -187,7 +187,7 @@ jobs:
         # 仅当 Tag 不存在（创建了新 Release）且前序步骤成功时执行
         if: steps.check_tag.outputs.TAG_EXISTS == 'false' && success()
         run: |
-          # 核心修复1：关闭严格模式，避免单个命令失败终止流程
+          # 关闭严格模式，避免单个命令失败终止流程
           set +e
           # 构造 JitPack 相关地址
           REPO_FULL_NAME="${{ github.repository }}"
@@ -203,11 +203,11 @@ jobs:
           echo "JitPack API：${JITPACK_API_URL}"
           echo "=========================================="
 
-          # 核心修复2：大幅延长同步时间（90秒），确保JitPack拉取到GitHub的Tag/Release
+          # 大幅延长同步时间（90秒），确保JitPack拉取到GitHub的Tag/Release
           echo "⏳ 等待90秒，让JitPack同步GitHub的Tag和Release..."
           sleep 90
 
-          # 核心修复3：先访问JitPack仓库主页，强制刷新仓库数据
+          # 先访问JitPack仓库主页，强制刷新仓库数据
           echo "🔄 强制刷新JitPack仓库数据..."
           curl -s --connect-timeout 20 --max-time 40 -k "$JITPACK_REPO_URL" > /dev/null
 
@@ -280,24 +280,25 @@ jobs:
             echo "🔗 编译日志地址：${JITPACK_CHECK_URL}/build.log"
           fi
           
-          # 核心修复4：强制返回0，确保工作流不终止（移除多余的无效代码）
+          # 强制返回0，确保工作流不终止
           exit 0
-
-          # 打印JitPack编译状态查询地址，方便排查
-          JITPACK_STATUS_URL="https://jitpack.io/com/github/${{ github.repository_owner }}/${{ github.event.repository.name }}/${TAG_NAME}"
-          echo "📌 JitPack编译状态查询：${JITPACK_STATUS_URL}"
-          echo "📌 JitPack编译日志查询：${JITPACK_STATUS_URL}/build.log"
 
       - name: step_seven -> 发布aar到GitHub Packages
         if: steps.check_tag.outputs.TAG_EXISTS == 'false' && success()
         run: |
           set +e
+
+          echo "===== 调试环境变量 ====="
+          echo "GITHUB_ACTOR: ${{ github.actor }}"
+          echo "PUBLISH_MAVEN_USER（预设）: $PUBLISH_MAVEN_USER"
+          echo "PUBLISH_MAVEN_KEY（长度）: ${#PUBLISH_MAVEN_KEY}"
+
           # 构建aar（aar在common/build/outputs/aar/目录下）
           ./gradlew :common:assembleRelease --info
           
           # 配置Maven发布到GitHub Packages
           mkdir -p ~/.m2
-          echo "<settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ github.token }}</password></server></servers></settings>" > ~/.m2/settings.xml
+          echo "<settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > ~/.m2/settings.xml
           
           echo "===== 开始提取仓库名 ====="
           REPO_NAME=""
@@ -337,11 +338,18 @@ jobs:
             echo "✅ 最终仓库名：$REPO_NAME"
           fi
           
-          # 执行发布任务
+          # ========== 显式传递环境变量给Gradle发布命令 ==========
           PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
           echo "📝 执行发布任务：$PUBLISH_TASK"
-          ./gradlew $PUBLISH_TASK
+          # 在执行gradlew时，直接传递环境变量（优先级最高）
+          PUBLISH_MAVEN_USER="${{ github.actor }}" \
+          PUBLISH_MAVEN_KEY="${{ secrets.GITHUB_TOKEN }}" \
+          ./gradlew $PUBLISH_TASK --info
         env:
+          # 全局环境变量（双重保障）
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISH_MAVEN_USER: ${{ github.actor }}
           PUBLISH_MAVEN_KEY: ${{ secrets.GITHUB_TOKEN }}
+          # Android SDK 环境变量（确保Gradle能找到）
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
