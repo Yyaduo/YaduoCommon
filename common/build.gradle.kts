@@ -80,8 +80,8 @@ afterEvaluate {
                         }
                     }
                     scm {
-                        connection.set("scm:git:git://github.com/Yyaduo/YaduoCommon.git")
-                        developerConnection.set("scm:git:ssh://github.com/Yyaduo/YaduoCommon.git")
+                        connection.set("scm:git:https://github.com/Yyaduo/YaduoCommon.git")
+                        developerConnection.set("scm:git:https://github.com/Yyaduo/YaduoCommon.git")
                         url.set("https://github.com/Yyaduo/YaduoCommon")
                     }
                 }
