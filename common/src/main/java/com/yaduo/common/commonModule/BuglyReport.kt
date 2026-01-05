@@ -75,7 +75,7 @@ object BuglyReport : ICommonModule {
      * @param context 应用上下文（自动转换为 ApplicationContext）
      */
     override fun initialize(context: Context) {
-        if (isInitialized && !isCanInitialized) return
+        if (isInitialized || !isCanInitialized) return
 
         val buglyAppId = MetaDataUtils.getMetaDataString(context, META_KEY_BUGLY_APPID)
 
