@@ -1,0 +1,365 @@
+# .github/workflows/auto-release.yml
+name: 自动发布Release
+
+# 触发条件：Push到目标分支
+on:
+  push:
+    branches: [
+      main,
+      master,
+      release-branch-v*,
+    ]
+    # 只监听相关文件变更时触发并排除本文件修改触发
+    paths:
+      - 'app/build.gradle.kts'
+      - 'common/build.gradle.kts'
+      - 'gradle.properties'
+      - '**.toml'
+      - '**.kt'
+      - '**.java'
+      - '!.github/workflows/auto-release.yml'
+
+# 配置工作流权限
+permissions:
+  contents: write  # 允许读写仓库内容（创建Tag/Release）
+  packages: write   # 发布GitHub Packages需要的权限
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest  # 编译环境
+    # 失败时立即终止，避免无效步骤
+    continue-on-error: false
+    # 输出变量给后续发布job
+    outputs:
+      TAG_EXISTS: ${{ steps.check_tag.outputs.TAG_EXISTS }}
+      TAG_NAME: ${{ steps.get_version.outputs.TAG_NAME }}
+      VERSION_NAME: ${{ steps.get_version.outputs.VERSION_NAME }}
+      RELEASE_TITLE: ${{ steps.get_version.outputs.RELEASE_TITLE }}
+    steps:
+      # 步骤1：拉取仓库代码
+      - name: step_one -> 拉取代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 拉取所有历史，方便创建Tag
+          # 配置git用户（提前配置，避免后续重复）
+          persist-credentials: true
+
+      # 步骤2：读取版本号
+      - name: step_two -> 读取版本号
+        id: get_version
+        run: |
+          # 任意命令失败立即退出
+          set -e 
+          
+          # ========== 读取gradle.properties ==========
+          # 过滤出VERSION_NAME行
+          VERSION_LINE=$(grep '^VERSION_NAME=' gradle.properties)
+          # 按等号分割，取后半部分，去掉首尾空格
+          VERSION_NAME=$(echo "$VERSION_LINE" | cut -d'=' -f2 | tr -d ' ' | tr -d '\t')
+          
+          # ========== 备用：读取build.gradle.kts==========
+          if [ -z "$VERSION_NAME" ]; then
+            echo "未从gradle.properties读取版本号，尝试读取common/build.gradle.kts..."
+            # 过滤version行 + 按引号分割 + 去空格
+            VERSION_LINE=$(grep 'version =' common/build.gradle.kts | head -1)
+            VERSION_NAME=$(echo "$VERSION_LINE" | cut -d'"' -f2 | tr -d ' ' | tr -d '\t')
+          fi
+          
+          # 最终校验版本号
+          if [ -z "$VERSION_NAME" ]; then
+            echo "ERROR: 未从gradle.properties或build.gradle.kts读取到版本号！"
+            exit 1
+          fi
+          
+          # 生成发布相关变量
+          TODAY_DATE=$(date +'%Y.%m.%d')
+          TAG_NAME=release-v${VERSION_NAME}
+          RELEASE_TITLE="${VERSION_NAME}-${TODAY_DATE}"
+          
+          # 输出变量（关键：补充TODAY_DATE输出）
+          echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "RELEASE_TITLE=${RELEASE_TITLE}" >> $GITHUB_OUTPUT
+          echo "TODAY_DATE=${TODAY_DATE}" >> $GITHUB_OUTPUT
+          
+          # 打印日志（便于排查问题）
+          echo "===== 发布信息 ====="
+          echo "版本号：${VERSION_NAME}"
+          echo "Tag名称：${TAG_NAME}"
+          echo "Release标题：${RELEASE_TITLE}"
+          echo "发布日期：${TODAY_DATE}"
+          echo "===================="
+
+      # 步骤3：检查Tag是否已存在（避免重复发布）
+      - name: step_three -> 检查Tag是否存在
+        id: check_tag
+        run: |
+          if git rev-parse "refs/tags/${{ steps.get_version.outputs.TAG_NAME }}" >/dev/null 2>&1; then
+            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Tag ${{ steps.get_version.outputs.TAG_NAME }} 已存在，跳过创建"
+          else
+            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
+            echo "✅ Tag ${{ steps.get_version.outputs.TAG_NAME }} 不存在，准备创建"
+          fi
+
+      # 步骤4：创建Tag（仅Tag不存在时执行）
+      - name: step_four -> 创建Git Tag
+        id: build_release
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        run: |
+          set -e
+          # 1. 获取本次提交的作者名称，兜底用GitHub Actor
+          COMMIT_AUTHOR_NAME="${{ github.event.head_commit.author.name || github.actor }}"
+          # 2. 获取本次提交的作者邮箱，兜底用 GitHub 官方noreply邮箱
+          COMMIT_AUTHOR_EMAIL="${{ github.event.head_commit.author.email }}"
+          if [ -z "$COMMIT_AUTHOR_EMAIL" ]; then
+            COMMIT_AUTHOR_EMAIL="${{ github.actor }}@users.noreply.github.com"
+          fi
+          
+          git config --global user.name "$COMMIT_AUTHOR_NAME"
+          git config --global user.email "$COMMIT_AUTHOR_EMAIL"
+          
+          # 输出提交的用户信息
+          echo "commit_author_name=${COMMIT_AUTHOR_NAME}" >> $GITHUB_OUTPUT
+          echo "commit_author_email=${COMMIT_AUTHOR_EMAIL}" >> $GITHUB_OUTPUT
+          
+          # 打印配置的用户信息
+          echo "🔧 配置的Git用户信息："
+          echo "   名称：$COMMIT_AUTHOR_NAME"
+          echo "   邮箱：$COMMIT_AUTHOR_EMAIL"
+          
+          TAG_NAME="${{ steps.get_version.outputs.TAG_NAME }}"
+          RELEASE_TITLE="${{ steps.get_version.outputs.RELEASE_TITLE }}"
+          git tag -a "$TAG_NAME" -m "Release $RELEASE_TITLE"
+          
+          # 推送Tag
+          for i in {1..3}; do
+            if git push origin ${{ steps.get_version.outputs.TAG_NAME }}; then
+              echo "✅ Tag推送成功"
+              break
+            else
+              echo "⚠️ Tag推送失败，第${i}次重试..."
+              sleep 2
+              if [ $i -eq 3 ]; then
+                echo "❌ Tag推送3次失败，终止流程"
+                exit 1
+              fi
+            fi
+          done
+
+      # 步骤5：创建GitHub Release（自动填充Tag/Title/分支）
+      - name: step_five -> 创建Release
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
+          name: ${{ steps.get_version.outputs.RELEASE_TITLE }}  # 使用带日期的标题
+          target_commitish: ${{ github.ref_name }}
+          # 显式配置发布类型（非草稿/非预发布）
+          draft: false
+          prerelease: false
+          body: |
+            ## ${{ github.event.repository.name }} : ${{ steps.get_version.outputs.RELEASE_TITLE }}
+            - 发布分支：${{ github.ref_name }}
+            - 提交哈希：${{ github.sha }}
+            - 发布日期：${{ steps.get_version.outputs.TODAY_DATE }}
+            - 代码提交作者：${{ steps.build_release.outputs.commit_author_name }} <${{ steps.build_release.outputs.commit_author_email }}>
+            - Release 创建者：GitHub Actions（自动化发布）
+            - 提交信息：${{ github.event.head_commit.message || '无提交信息' }}
+            - JitPack依赖示例：
+              ```gradle
+              dependencies {
+                  implementation 'com.github.${{ github.repository_owner }}:${{ github.event.repository.name }}:${{ steps.get_version.outputs.TAG_NAME }}'
+              }
+              ```
+              ```toml
+              [libraries]
+              yaduo-common = { module = "com.github.Yyaduo:YaduoCommon", version.ref = "yaduocommon" }
+            
+              [versions]
+              yaduocommon = "${{ steps.get_version.outputs.TAG_NAME }}"
+              ```
+
+  # 触发JitPack编译
+  trigger-jitpack-build:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    # 仅主auto-release成功且Tag不存在时执行
+    needs: auto-release
+    if: needs.auto-release.outputs.TAG_EXISTS == 'false' && needs.auto-release.result == 'success'
+    steps:
+      - name: step_one -> 拉取代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: step_two -> 触发JitPack编译
+        run: |
+          set +e
+          REPO_FULL_NAME="${{ github.repository }}"
+          TAG_NAME="${{ needs.auto-release.outputs.TAG_NAME }}"
+          JITPACK_API_URL="https://jitpack.io/api/builds/${REPO_FULL_NAME}/${TAG_NAME}"
+          JITPACK_CHECK_URL="https://jitpack.io/com/github/${{ github.repository_owner }}/${{ github.event.repository.name }}/${TAG_NAME}"
+          JITPACK_REPO_URL="https://jitpack.io/#${REPO_FULL_NAME}"
+          
+          echo "===== 触发JitPack编译 ====="
+          echo "仓库地址：${REPO_FULL_NAME}"
+          echo "Tag版本：${TAG_NAME}"
+          echo "JitPack API：${JITPACK_API_URL}"
+          echo "============================"
+          
+          echo "⏳ 等待90秒，让JitPack同步GitHub的Tag和Release..."
+          sleep 90
+          
+          echo "🔄 强制刷新JitPack仓库数据..."
+          curl -s --connect-timeout 20 --max-time 40 -k "$JITPACK_REPO_URL" > /dev/null
+          
+          TAG_FOUND=false
+          for i in {1..2}; do
+            echo "🔍 第${i}次检查JitPack是否识别Tag..."
+            CHECK_RESPONSE=$(curl -s --connect-timeout 20 --max-time 60 -k "$JITPACK_CHECK_URL")
+            CURL_EXIT_CODE=$?
+            if [ $CURL_EXIT_CODE -ne 0 ]; then
+              echo "⚠️ 第${i}次检查：curl请求失败，20秒后重试..."
+              sleep 20
+              continue
+            fi
+            if echo "$CHECK_RESPONSE" | grep -qi "not found"; then
+              echo "⚠️ 第${i}次检查：JitPack未识别到Tag，20秒后重试..."
+              sleep 20
+            else
+              echo "✅ JitPack已识别到Tag，开始触发编译..."
+              TAG_FOUND=true
+              break
+            fi
+          done
+          
+          if [ "$TAG_FOUND" = false ]; then
+            echo "⚠️ JitPack Tag检查失败，直接尝试触发编译..."
+          fi
+          
+          BUILD_SUCCESS=false
+          for i in {1..3}; do
+            echo "📡 第${i}次尝试触发JitPack编译..."
+            RESPONSE=$(curl -s -X POST \
+              --connect-timeout 20 \
+              --max-time 60 \
+              -k \
+              -H "User-Agent: GitHub Actions/${{ github.run_id }} (${{ github.actor }})" \
+              -H "Accept: application/json" \
+              "$JITPACK_API_URL")
+            CURL_EXIT_CODE=$?
+            if [ $CURL_EXIT_CODE -ne 0 ]; then
+              echo "⚠️ 第${i}次触发：curl请求失败，20秒后重试..."
+              sleep 20
+              continue
+            fi
+            echo "📝 JitPack响应：${RESPONSE:-"空响应"}"
+            if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -qiE "Building|Queued|Success|Created|Found"; then
+              echo "✅ JitPack编译触发成功！"
+              BUILD_SUCCESS=true
+              break
+            else
+              echo "⚠️ 第${i}次触发：响应无效，20秒后重试..."
+              sleep 20
+            fi
+          done
+          
+          if [ "$BUILD_SUCCESS" = false ]; then
+            echo "⚠️ JitPack编译触发最终失败（非致命错误）！"
+            echo "🔗 手动触发地址：https://jitpack.io/#${REPO_FULL_NAME}/${TAG_NAME}"
+            echo "🔗 编译日志地址：${JITPACK_CHECK_URL}/build.log"
+          fi
+          exit 0
+
+  # 发布aar到GitHub Packages
+  publish-to-github-packages:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    # 仅主auto-release成功且Tag不存在时执行
+    needs: auto-release
+    if: needs.auto-release.outputs.TAG_EXISTS == 'false' && needs.auto-release.result == 'success'
+    steps:
+      # 步骤1：拉取代码
+      - name: step_one -> 拉取仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 步骤2：配置Android SDK
+      - name: step_two -> 配置Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 步骤3：缓存Gradle依赖
+      - name: step_three -> 缓存Gradle依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # 步骤4：创建local.properties
+      - name: step_four -> 创建Android SDK配置文件
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > ${{ github.workspace }}/local.properties
+          echo "✅ 已创建local.properties，SDK路径：${ANDROID_HOME}"
+
+      # 步骤5：发布aar到GitHub Packages
+      - name: step_five -> 发布aar到GitHub Packages
+        run: |
+          set -e  # 错误立即终止，便于排查
+          echo "===== 调试关键环境变量 ====="
+          echo "GITHUB_ACTOR: ${{ github.actor }}"
+          echo "PUBLISH_MAVEN_USER: $PUBLISH_MAVEN_USER"
+          echo "PUBLISH_MAVEN_KEY长度: ${#PUBLISH_MAVEN_KEY}"
+          echo "关联Tag: ${{ needs.auto-release.outputs.TAG_NAME }}"
+          echo "版本号: ${{ needs.auto-release.outputs.VERSION_NAME }}"
+  
+          # 配置Maven认证（兜底保障）
+          mkdir -p ~/.m2
+          echo "<settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > ~/.m2/settings.xml
+  
+          # 提取仓库名（保持原逻辑，确保发布任务名正确）
+          REPO_NAME=""
+          PROPERTIES_OUTPUT=$(./gradlew :common:properties --no-daemon -q -Porg.gradle.logging.level=ERROR 2>/tmp/gradle_error.log)
+          GRADLE_EXIT_CODE=$?
+          if [ $GRADLE_EXIT_CODE -eq 0 ] && [ -n "$PROPERTIES_OUTPUT" ]; then
+            REPO_NAME=$(echo "$PROPERTIES_OUTPUT" | awk '/publishing\.repositories\.maven\.name/ { gsub(/.*name[=:]\s*/, ""); gsub(/\r|\n/, ""); print $0 }')
+          fi
+          if [ -z "$REPO_NAME" ]; then
+            REPO_NAME=$(grep 'name = "YaduoCommon"' common/build.gradle.kts | awk -F'"' '{print $2}')
+          fi
+          REPO_NAME=${REPO_NAME:-"YaduoCommon"}
+          echo "✅ 最终仓库名：$REPO_NAME"
+
+          # 关键：先执行 publishToMavenLocal 生成 POM 文件到本地 Maven 仓库
+          echo "📝 生成 POM 文件到本地 Maven 仓库..."
+          ./gradlew -PpublishToGitHubPackages=true :common:publishToMavenLocal --build-cache --info
+      
+          # 打印 POM 文件（此时已生成，路径正确）
+          echo "📝 打印 POM 文件内容..."
+          POM_PATH="~/.m2/repository/com/github/Yyaduo/YaduoCommon/${{ needs.auto-release.outputs.VERSION_NAME }}/YaduoCommon-${{ needs.auto-release.outputs.VERSION_NAME }}.pom"
+          # 兼容路径：如果本地仓库没有，读取构建临时目录的 POM
+          if [ ! -f "$POM_PATH" ]; then
+          POM_PATH="${{ github.workspace }}/common/build/publications/release/pom-default.xml"
+          echo "⚠️ 本地Maven仓库无POM，读取构建临时目录：$POM_PATH"
+          fi
+          cat "$POM_PATH" || echo "⚠️ POM 文件读取失败，但继续发布流程..."
+  
+          # 执行发布任务（自动依赖assembleRelease，无需单独构建）
+          PUBLISH_TASK=":common:publishReleasePublicationTo${REPO_NAME}Repository"
+          echo "📝 执行发布任务：$PUBLISH_TASK"
+          PUBLISH_MAVEN_USER="${{ github.actor }}" \
+          PUBLISH_MAVEN_KEY="${{ secrets.GITHUB_TOKEN }}" \
+          ./gradlew -PpublishToGitHubPackages=true $PUBLISH_TASK --build-cache --info
+        env:
+          # 核心认证环境变量
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISH_MAVEN_USER: ${{ github.actor }}
+          PUBLISH_MAVEN_KEY: ${{ secrets.GITHUB_TOKEN }}
+          # Android SDK环境变量
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}

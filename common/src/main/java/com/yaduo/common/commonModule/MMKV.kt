@@ -43,10 +43,14 @@ object MMKV : ICommonModule {
 
     override var isInitialized = false
 
+    override var isCanInitialized = true
+
     override fun initialize(context: Context) {
         MMKV.initialize(context)
         isInitialized = true
     }
+
+    override fun checkCanBeInitialized(context: Context) = Chucker.isCanInitialized
 
     /** 获取默认的 MMKV 实例 **/
     private val mmkv: MMKV by lazy { MMKV.defaultMMKV() }

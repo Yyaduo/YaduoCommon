@@ -1,21 +1,31 @@
-MIT License
+Version 1.0, [2026]
 
-Copyright (c) 2026 YaDuo
+Copyright (C) [2026]  YaDuo
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+## 一、 授予权限
+1.  **个人非商业使用**
+    任何自然人可在 **非商业场景** 下自由使用、复制、修改本项目的完整或部分代码，无需获取书面授权。修改后的代码仅限自用，不得对外分发。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2.  **二次分发**
+    允许任何人 fork 本项目、二次分发完整未修改的代码包，但分发后的作品 **仅限个人非商业使用**，不得用于任何商业目的（包括但不限于出售、嵌入商业应用、付费授权等）。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3.  **保留声明**
+    无论使用、修改还是二次分发，必须在项目代码、文档中 **保留原作者版权声明和本许可证全文**，不得篡改或删除作者信息。
+
+## 二、 限制条款
+1.  **商业使用限制**
+    任何单位或个人将本项目用于商业场景（包括但不限于企业内部系统、付费应用、商业授权、产品嵌入等），**必须提前联系原作者获取书面授权**。未获得授权的商业使用行为，原作者保留追究法律责任的权利。
+
+2.  **修改分发限制**
+    对本项目代码进行修改后，**禁止以任何形式二次分发修改后的代码**（无论个人或商业用途），除非获得原作者书面授权。
+
+3.  **责任豁免**
+    本项目以「现状」提供，原作者不承担任何因使用本项目导致的直接或间接损失，包括但不限于数据丢失、系统故障、商业损失等。
+
+## 三、 联系方式
+如需商业授权或修改后分发授权，请通过以下方式联系作者：
+- GitHub Issues: https://github.com/YaDuo/YaduoCommon/issues
+- 邮箱: 2499133184@qq.com
+
+## 四、 其他
+本许可证的最终解释权归原作者所有。如本许可证条款与第三方依赖的许可证冲突，以第三方依赖的许可证为准。
