@@ -1,7 +1,7 @@
 # YaduoCommon
 
 [![Release](https://img.shields.io/github/v/release/Yyaduo/YaduoCommon?include_prereleases)](https://github.com/YaDuo/YaduoCommon/releases)
-[![License](https://img.shields.io/github/license/Yyaduo/YaduoCommon)](./LICENSE)
+[![License](https://img.shields.io/badge/License-个人免费_商业需授权-orange)](./LICENSE)
 [![Language](https://img.shields.io/badge/language-Kotlin/Java-brightgreen)](https://kotlinlang.org/)
 [![Platform](https://img.shields.io/badge/platform-Android-blue)](https://developer.android.com/)
 [![Min SDK](https://img.shields.io/badge/Min%20SDK-26%20(Android%208.0)-orange)](https://developer.android.com/about/versions/android-8.0)
