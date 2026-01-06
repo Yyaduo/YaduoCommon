@@ -25,17 +25,17 @@ object AppLogicUtil {
     /**
      * 初始化方法
      * 1. 传入Application的实例
-     * 2. 检查所有的'ICommonModule'是否可以初始化
+     * 2. 检查需要检查是否可以初始化的'ICommonModule'
      * 3. 按需初始化
      *
      * @param app 在Application创建时传入上下文
-     * @param needCheck 是否需要检查所有'ICommonModule'是否可以初始化，默认为false
-     * @param needInitialize 是否需要初始化所有'ICommonModule'，默认为false
+     * @param needCheck 是否需要检查目标'ICommonModule'是否可以初始化，默认为false
+     * @param needInitialize 是否需要初始化待检查的'ICommonModule'，默认为false
      */
     fun initialize(app: Application, needCheck: Boolean = true, needInitialize: Boolean = false) {
         sApp = app
         if (needCheck) {
-            registerAllCommonModule()
+            registerCheckableCommonModules()
             commonModuleList.forEach { it.checkCanBeInitialized() }
         }
         if (needInitialize) {
@@ -111,5 +111,13 @@ object AppLogicUtil {
             e.printStackTrace()
             0L
         }
+    }
+
+    /**
+     * 注册需要检查初始化条件的模块
+     */
+    private fun registerCheckableCommonModules() {
+        registerCommonModule(AutoSizeConfig)
+        registerCommonModule(BuglyReport)
     }
 }
