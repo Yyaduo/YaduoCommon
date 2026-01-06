@@ -41,11 +41,15 @@ import com.yaduo.common.log.LogUtil
  */
 object MMKV : ICommonModule {
 
+    private const val TAG = "MMKV"
+
     override var isInitialized = false
 
     override var isCanInitialized = true
 
     override fun initialize(context: Context) {
+        if (isInitialized || !isCanInitialized) return
+        LogUtil.i(TAG, "MMKV 初始化")
         MMKV.initialize(context)
         isInitialized = true
     }

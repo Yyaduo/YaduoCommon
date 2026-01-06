@@ -5,6 +5,7 @@ import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.chuckerteam.chucker.api.RetentionManager
 import com.yaduo.common.applogic.AppLogicUtil
+import com.yaduo.common.log.LogUtil
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
@@ -24,6 +25,8 @@ import java.io.IOException
  * @since 2025-07-18 17:50:53
  */
 object Chucker : ICommonModule {
+
+    private const val TAG = "Chucker"
 
     override var isInitialized = false
 
@@ -55,7 +58,8 @@ object Chucker : ICommonModule {
     }
 
     override fun initialize(context: Context) {
-        if (isInitialized && !BuglyReport.isCanInitialized) return
+        if (isInitialized && !isCanInitialized) return
+        LogUtil.i(TAG, "Chucker initialized")
 
         _chuckerInterceptor = createChuckerInterceptor(context)
         isInitialized = true
