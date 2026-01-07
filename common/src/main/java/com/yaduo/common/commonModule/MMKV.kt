@@ -54,43 +54,44 @@ object MMKV : ICommonModule {
         isInitialized = true
     }
 
-    override fun checkCanBeInitialized(context: Context) = Chucker.isCanInitialized
+    override fun checkCanBeInitialized(context: Context) = isCanInitialized
 
     /** 获取默认的 MMKV 实例 **/
-    private val mmkv: MMKV by lazy { MMKV.defaultMMKV() }
+    private val mmkv: MMKV? by lazy {
+        if (!isInitialized) {
+            LogUtil.w(TAG, "MMKV 尚未初始化，请先调用 MMKV.initialize(context)")
+            null
+        } else {
+            MMKV.defaultMMKV()
+        }
+    }
 
     /** Gson 实例，用于对象与 JSON 转换 **/
     private val gson: Gson by lazy { Gson() }
 
-    fun putInt(key: String, value: Int) = mmkv.encode(key, value)
+    fun putInt(key: String, value: Int) = mmkv?.encode(key, value)
 
-    fun getInt(key: String, defaultValue: Int = 0) = mmkv.decodeInt(key, defaultValue)
+    fun getInt(key: String, defaultValue: Int = 0) = mmkv?.decodeInt(key, defaultValue)
 
-    fun putLong(key: String, value: Long) = mmkv.encode(key, value)
+    fun putLong(key: String, value: Long) = mmkv?.encode(key, value)
 
+    fun getLong(key: String, defaultValue: Long = 0L) = mmkv?.decodeLong(key, defaultValue)
 
-    fun getLong(key: String, defaultValue: Long = 0L) = mmkv.decodeLong(key, defaultValue)
+    fun putFloat(key: String, value: Float) = mmkv?.encode(key, value)
 
-    fun putFloat(key: String, value: Float) = mmkv.encode(key, value)
+    fun getFloat(key: String, defaultValue: Float = 0f) = mmkv?.decodeFloat(key, defaultValue)
 
+    fun putDouble(key: String, value: Double) = mmkv?.encode(key, value)
 
-    fun getFloat(key: String, defaultValue: Float = 0f) = mmkv.decodeFloat(key, defaultValue)
+    fun getDouble(key: String, defaultValue: Double = 0.0) = mmkv?.decodeDouble(key, defaultValue)
 
-    fun putDouble(key: String, value: Double) = mmkv.encode(key, value)
+    fun putBoolean(key: String, value: Boolean) = mmkv?.encode(key, value)
 
+    fun getBoolean(key: String, defaultValue: Boolean = false) = mmkv?.decodeBool(key, defaultValue)
 
-    fun getDouble(key: String, defaultValue: Double = 0.0) = mmkv.decodeDouble(key, defaultValue)
+    fun putString(key: String, value: String) = mmkv?.encode(key, value)
 
-    fun putBoolean(key: String, value: Boolean) = mmkv.encode(key, value)
-
-
-    fun getBoolean(key: String, defaultValue: Boolean = false) = mmkv.decodeBool(key, defaultValue)
-
-    fun putString(key: String, value: String) = mmkv.encode(key, value)
-
-
-    fun getString(key: String, defaultValue: String = "") =
-        mmkv.decodeString(key, defaultValue) ?: defaultValue
+    fun getString(key: String, defaultValue: String = "") = mmkv?.decodeString(key, defaultValue)
 
     /**
      * 将泛型对象转换为 JsonObject 并存储
@@ -99,8 +100,13 @@ object MMKV : ICommonModule {
      * @param T 泛型类型，支持任意实现默认构造函数的类
      */
     fun <T> putObjectAsJsonObject(key: String, data: T) {
-        val jsonObject = gson.toJsonTree(data).asJsonObject
-        mmkv.encode(key, jsonObject.toString())
+        runCatching {
+            val jsonObject = gson.toJsonTree(data).asJsonObject
+            mmkv?.encode(key, jsonObject.toString())
+        }.onFailure {
+            LogUtil.e(content = "putObjectAsJsonObject failed", throwable = it)
+        }
+
     }
 
     /**
@@ -113,7 +119,7 @@ object MMKV : ICommonModule {
      */
     fun <T> getObjectFromJsonObject(key: String, clazz: Class<T>, defaultValue: T? = null): T? {
         return runCatching {
-            val jsonString = mmkv.decodeString(key)
+            val jsonString = mmkv?.decodeString(key)
             if (jsonString.isNullOrEmpty()) {
                 defaultValue
             } else {
@@ -125,9 +131,49 @@ object MMKV : ICommonModule {
         }
     }
 
-    fun containsKey(key: String) = mmkv.containsKey(key)
+    fun containsKey(key: String) = mmkv?.containsKey(key)
 
-    fun removeKey(key: String) = mmkv.remove(key)
+    fun removeKey(key: String) = mmkv?.remove(key)
 
-    fun clearAll() = mmkv.clearAll()
+    fun clearAll() = mmkv?.clearAll()
+
+    /**
+     * 检查 MMKV 初始化状态，执行无返回值操作
+     * @param actionDesc 操作描述（用于日志）
+     * @param action 要执行的操作
+     */
+    private fun checkAndRun(actionDesc: String, action: () -> Unit) {
+        if (!isInitialized || mmkv == null) {
+            LogUtil.w(TAG, "MMKV isn't initialized，skip action：$actionDesc")
+            return
+        }
+        try {
+            action()
+        } catch (e: Exception) {
+            LogUtil.e(TAG, "MMKV do action failed：$actionDesc", e)
+        }
+    }
+
+    /**
+     * 检查 MMKV 初始化状态，执行有返回值操作
+     * @param actionDesc 操作描述（用于日志）
+     * @param defaultValue 操作失败时的默认值
+     * @param action 要执行的操作
+     * @return 操作结果或默认值
+     */
+    private fun <T> checkAndGet(actionDesc: String, defaultValue: T, action: () -> T): T {
+        if (!isInitialized || mmkv == null) {
+            LogUtil.w(
+                TAG,
+                "MMKV isn't initialized，action: $actionDesc, return default value: $defaultValue"
+            )
+            return defaultValue
+        }
+        return try {
+            action()
+        } catch (e: Exception) {
+            LogUtil.e(TAG, "MMKV do action failed：$actionDesc", e)
+            defaultValue
+        }
+    }
 }
