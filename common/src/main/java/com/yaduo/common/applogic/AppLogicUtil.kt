@@ -22,6 +22,9 @@ object AppLogicUtil {
     /** 保存的[ICommonModule]列表 **/
     private val commonModuleList = mutableListOf<ICommonModule>()
 
+    /** 检查是否初始化 **/
+    var isInitialized = false
+
     /**
      * 初始化方法
      * 1. 传入Application的实例
@@ -41,6 +44,7 @@ object AppLogicUtil {
         if (needInitialize) {
             initializeCommonModule()
         }
+        isInitialized = true
     }
 
     /**

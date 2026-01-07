@@ -14,10 +14,22 @@ import java.io.StringWriter
 object LogUtil {
 
     /** 默认日志的TAG **/
-    private val DEFAULT_LOG_TAG = AppLogicUtil.getApp().applicationInfo.packageName
+    private val DEFAULT_LOG_TAG by lazy {
+        if (AppLogicUtil.isInitialized) {
+            AppLogicUtil.getApp().applicationInfo.packageName
+        } else {
+            this.javaClass.simpleName
+        }
+    }
 
     /** 默认日志文件名 **/
-    private val DEFAULT_LOG_FILE_NAME = "${AppLogicUtil.getApp().applicationInfo.name}_log"
+    private val DEFAULT_LOG_FILE_NAME by lazy {
+        if (AppLogicUtil.isInitialized) {
+            "${AppLogicUtil.getApp().applicationInfo.name}_log"
+        } else {
+            "${this.javaClass.simpleName}_log"
+        }
+    }
 
     /** 是否需要记录调用栈信息，在Debug包下为true **/
     private var isNeedPrintStack: Boolean = true
