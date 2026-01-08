@@ -12,19 +12,19 @@
 > 封装日常开发高频核心能力，支持模块化初始化、自动适配业务场景，大幅降低重复开发成本。
 
 ## 🗺 目录
+
 - [📂项目结构](#-项目结构)
 - [📱兼容性](#-兼容性)
 - [🚀核心功能模块](#-核心功能模块)
 - [🧩模块化初始化设计](#-模块化初始化设计)
 - [🛠集成方式](#-集成方式)
 - [💡快速使用示例](#-快速使用示例)
-  - [屏幕适配（AutoSizeConfig）](#屏幕适配autosizeconfig)
-  - [Bugly 崩溃上报（BuglyReport）](#bugly-崩溃上报buglyreport)
-  - [MMKV 数据存储](#mmkv-数据存储)
-  - [网络监控（Chucker）](#网络监控chucker)
-  - [DeviceInfo 设备信息](#deviceinfo-设备信息)
-  - [增强日志打印](#增强日志打印)
-  - [MetaDataUtils 读取 Manifest 配置](#metadatautils-读取-manifest-配置)
+    - [屏幕适配（AutoSizeConfig）](#屏幕适配autosizeconfig)
+    - [Bugly 崩溃上报（BuglyReport）](#bugly-崩溃上报buglyreport)
+    - [MMKV 数据存储](#mmkv-数据存储)
+    - [网络监控（Chucker）](#网络监控chucker)
+    - [DeviceInfo 设备信息](#deviceinfo-设备信息)
+    - [工具类](#工具类)
 - [📦自动发布流程](#-自动发布流程)
 - [📋版本规范](#-版本规范)
 - [⚠️注意事项](#-注意事项)
@@ -59,9 +59,7 @@
 | Chucker        | 网络请求监控拦截器，敏感头（Authorization/Cookie）脱敏、开发/生产环境隔离、空操作默认拦截器       |
 | MMKV           | 腾讯MMKV键值存储封装，支持多类型基础数据、泛型对象JSON序列化、数据管理（contains/remove/clear） |
 | DeviceInfo     | 设备UUID/UID获取、网络状态检测、屏幕方向判断（宽高比）、设备信息一键打印                       |
-| LogUtil        | 增强型日志工具，自动携带进程/线程ID、调用栈（方法名/文件名/行号）、异常堆栈打印                     |
-| MetaDataUtils  | Manifest MetaData读取（Int/String）、多Key批量检测、空安全处理                 |
-| Utils          | 基于SHA-256的UID生成（UUID→SHA256→模Yaduo ASCII）、应用进程生命周期监听           |
+| 工具类            | 提供各种工具类封装，详情查阅com.yaduo.common.util                            |
 | 扩展函数           | ProcessLifecycleOwner空安全获取、Context快速显示Toast                    |
 
 ## 🧩 模块化初始化设计
@@ -297,33 +295,9 @@ val isNetworkConnected = DeviceInfo.isNetworkConnected() // 网络是否连接
 val isPortrait = DeviceInfo.isVisualPortrait() // 是否竖屏（宽≤高）
 ```
 
-### 增强日志打印
-
-``` kotlin
-LogUtil.d("TAG", "调试信息") // DEBUG级别
-LogUtil.i("TAG", "普通信息") // INFO级别
-LogUtil.w("TAG", "警告信息") // WARN级别
-LogUtil.e("TAG", "错误信息", throwable = Exception("测试异常")) // ERROR级别，可带异常堆栈
-
-// 日志格式示例：
-// [TAG]:: [进程ID/线程ID] [方法名] -> 日志内容[文件名:行号]
-// 例：[com.yaduo.common]:: [1234/5678] [printDeviceInfo] -> serial = xxx, uid = xxx[DeviceInfo.kt:25]
-```
-
-### MetaDataUtils 读取 Manifest 配置
-
-``` kotlin
-// 检测多个MetaData是否存在
-val hasConfig = MetaDataUtils.checkManifestHasTargetMetaData(
-    applicationContext,
-    "design_width_in_dp",
-    "design_height_in_dp"
-)
-
-// 读取单个MetaData
-val buglyAppId = MetaDataUtils.getMetaDataString(applicationContext, "BUGLY_APPID", "-1")
-val designWidth = MetaDataUtils.getMetaDataInt(applicationContext, "design_width_in_dp", 360)
-```
+### 工具类
+> 封装增强日志打印、Manifest MetaData 读取、权限申请等高频开发能力，
+> 包含 LogUtil、MetaDataUtils、PermissionUtils 等工具类，具体用法请查阅 com.yaduo.common.util 下的代码实现。
 
 ## 📦 自动发布流程
 
@@ -429,7 +403,9 @@ VERSION_NAME=1.0.0 # 发布版本号
 完整许可证内容请查阅 [LICENSE](./LICENSE) 文件。
 
 ### 授权申请方式
+
 如需商业授权或修改后分发授权，请通过以下途径联系作者：
+
 - GitHub Issues: https://github.com/YaDuo/YaduoCommon/issues
 - 邮箱: 2499133184@qq.com
 

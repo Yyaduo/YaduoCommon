@@ -7,6 +7,12 @@ import java.io.PrintWriter
 import java.io.StringWriter
 
 /**
+ * ### 增强型日志工具
+ *
+ * #### 核心特性：
+ *  - 自动携带进程/线程ID、调用栈（方法名/文件名/行号）
+ *  - 自动记录日志到文件 // TODO： 未完成
+ *
  * @author YaDuo
  * @since 2025-05-15 00:46:26
  * // FIXME: 打印的文件名和层级可能出错
