@@ -1,7 +1,9 @@
 [versions]
+activityCompose = "1.12.3"
 agp = "8.9.3"
 androidautosize = "v1.2.1"
 androidMavenGradlePlugin = "2.1"
+composeBom = "2026.01.01"
 crashreport = "latest.release"
 eventbus = "3.3.1"
 gradle = "4.0.0"
@@ -26,10 +28,19 @@ gson = "2.13.2"
 constraintLayout = "2.2.1"
 cardview = "1.0.0"
 publish = "0.35.0"
+azure-speech = "1.47.0"
+navigationCompose = "2.9.7"
+
 
 [libraries]
 # ================== Core Android 核心Android库 ==================
 android-maven-gradle-plugin = { module = "com.github.dcendents:android-maven-gradle-plugin", version.ref = "androidMavenGradlePlugin" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" } # Kotlin扩展的核心Android功能
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" } # 提供向后兼容支持
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
@@ -72,12 +83,15 @@ chucker = { module = "com.github.chuckerteam.chucker:library", version.ref = "ch
 androidautosize = { module = "com.github.JessYanCoding:AndroidAutoSize", version.ref = "androidautosize" } # 屏幕适配方案
 eventbus = { module = "org.greenrobot:eventbus", version.ref = "eventbus" } # 事件总线
 mmkv = { module = "com.tencent:mmkv-static", version.ref = "mmkv" } # 腾讯MMKV键值存储
-permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" } # 权限请求管理
+# 权限请求管理
+permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" }
+azure-speech = { module = "com.microsoft.cognitiveservices.speech:client-sdk", version.ref = "azure-speech" }
 
 # ================== Testing 测试相关 ==================
 junit = { group = "junit", name = "junit", version.ref = "junit" } # 单元测试框架
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" } # Android环境JUnit扩展
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" } # UI自动化测试框架
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" } # UI自动化测试框架
 
 [plugins]
 # ================== Build Plugins 构建插件 ==================

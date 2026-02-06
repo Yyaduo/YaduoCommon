@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.mmkv)             // MMKV
     implementation(libs.gson)             // MMKV 中用于对象转 Json
     implementation(libs.permissionx)      // PermissionX
+    implementation(libs.azure.speech)     // Azure Speech SDK
     api(libs.eventbus)                    // EventBus (保持 api 方便宿主使用)
 
     // Ktor 网络相关
